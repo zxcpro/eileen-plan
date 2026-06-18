@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌈 我的一周计划表</title>
+<style>
+  :root{
+    --pink:#ff5fa2; --pink-bg:#ffe6f1; --pink-bd:#ffb3d4;
+    --orange:#ff9b2f; --orange-bg:#fff0db; --orange-bd:#ffce93;
+    --blue:#3aa0ff; --blue-bg:#e2f1ff; --blue-bd:#a9d6ff;
+    --course:#9b6bff; --course-bg:#efe6ff; --course-bd:#cbb3ff;
+    --meal:#36c08a; --meal-bg:#e2f8ee; --meal-bd:#a7e7cc;
+    --ink:#3b3550; --soft:#8a82a3;
+    --bg:#fff7fb;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:
+      radial-gradient(circle at 10% 6%,#ffe0ef 0,transparent 36%),
+      radial-gradient(circle at 92% 5%,#dcefff 0,transparent 34%),
+      radial-gradient(circle at 50% 100%,#fff2cc 0,transparent 40%),
+      var(--bg);
+    color:var(--ink);min-height:100vh;padding:12px 14px 40px;
+  }
+  h1{font-size:22px;margin:0;display:flex;align-items:center;gap:8px;}
+  button{font-family:inherit;cursor:pointer;border:none;}
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .spread{justify-content:space-between;}
+
+  .btn{background:#fff;border:2px solid #ffd0e6;color:var(--ink);
+    padding:9px 14px;border-radius:14px;font-size:14px;font-weight:700;box-shadow:0 2px 0 #ffd0e6;white-space:nowrap;}
+  .btn:active{transform:translateY(2px);box-shadow:none;}
+  .btn.go{border-color:#a7e7cc;box-shadow:0 2px 0 #a7e7cc;}
+  .btn.on{background:var(--course);color:#fff;border-color:var(--course);box-shadow:0 2px 0 #7a55d0;}
+  .syncbadge{display:inline-block;font-size:12px;font-weight:800;padding:3px 11px;border-radius:11px;margin-top:6px;border:2px solid;}
+  .syncbadge.local{color:#8a82a3;border-color:#ddd;background:#f6f4fa;}
+  .syncbadge.connecting{color:#cf6f12;border-color:var(--orange-bd);background:var(--orange-bg);}
+  .syncbadge.online{color:#1f8c63;border-color:var(--meal-bd);background:var(--meal-bg);}
+  .syncbadge.error{color:#e3556e;border-color:#ffc6d2;background:#ffe7ec;}
+
+  /* header strip */
+  .head{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap;margin:10px 0 14px;}
+  .panel{background:#fff;border:2px solid #ffd9ec;border-radius:20px;padding:12px 16px;
+    box-shadow:0 6px 16px rgba(255,140,190,.16);}
+  .stars{flex:1 1 320px;display:flex;align-items:center;gap:14px;}
+  .stars .lead{font-size:13px;color:var(--soft);}
+  .chips{display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{display:flex;align-items:center;gap:6px;border-radius:16px;padding:8px 14px;font-weight:800;font-size:20px;border:2px solid #eee;}
+  .chip small{font-size:11px;font-weight:600;}
+  .chip.pink{border-color:var(--pink-bd);color:var(--pink);background:var(--pink-bg);}
+  .chip.orange{border-color:var(--orange-bd);color:var(--orange);background:var(--orange-bg);}
+  .chip.blue{border-color:var(--blue-bd);color:var(--blue);background:var(--blue-bg);}
+
+  /* pomodoro compact */
+  .pomo{flex:0 0 auto;display:flex;align-items:center;gap:14px;}
+  .ring-wrap{position:relative;width:86px;height:86px;flex:0 0 auto;}
+  .ring-wrap svg{transform:rotate(-90deg);}
+  .ring-bg{fill:none;stroke:#ffe4ef;stroke-width:9;}
+  .ring-fg{fill:none;stroke:url(#pg);stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset .3s linear;}
+  .clock{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .clock .t{font-size:19px;font-weight:800;}
+  .pomo-mid{display:flex;flex-direction:column;gap:6px;}
+  .pomo-title{font-weight:800;font-size:14px;}
+  .presets{display:flex;gap:5px;}
+  .pre{background:#fff0f6;border:2px solid #ffd0e6;border-radius:10px;padding:4px 8px;font-weight:700;font-size:12px;color:var(--pink);}
+  .pre.on{background:var(--pink);color:#fff;}
+  .pomo-ctrl{display:flex;gap:6px;}
+  .pomo-ctrl button{border-radius:11px;padding:7px 12px;font-size:13px;font-weight:800;color:#fff;}
+  .start{background:linear-gradient(135deg,#7ee08a,#3fc66a);}
+  .pause{background:linear-gradient(135deg,#ffb454,#ff8a3d);}
+  .reset{background:linear-gradient(135deg,#b9a8d8,#9b8bc4);}
+  .pomo-ctrl input{width:46px;padding:6px;border-radius:9px;border:2px solid #ffd0e6;text-align:center;font-size:13px;font-family:inherit;}
+  .pstate{font-size:11px;color:var(--soft);}
+
+  /* grid */
+  .gridwrap{overflow-x:auto;padding-bottom:8px;}
+  table{border-collapse:separate;border-spacing:5px;width:100%;min-width:880px;}
+  th,td{vertical-align:top;}
+  th.day{background:#fff;border:2px solid #ffe0ef;border-radius:14px;padding:8px 4px;text-align:center;font-size:14px;color:var(--soft);}
+  th.day.today{background:linear-gradient(135deg,#ff7fb6,#ff5fa2);color:#fff;border-color:#ff5fa2;}
+  th.day small{display:block;font-size:11px;font-weight:500;margin-top:2px;}
+  th.timehead{width:60px;background:transparent;border:none;}
+  td.time{width:60px;text-align:center;font-weight:800;font-size:12px;color:var(--soft);padding-top:14px;}
+  td.col{background:#fafafa;border:2px dashed #eee;border-radius:12px;height:46px;}
+  td.todaycol{background:#fffdf4;border-color:#ffe7a8;}
+  .cell{border-radius:12px;height:100%;min-height:42px;padding:7px 8px;position:relative;border:2px solid;display:flex;flex-direction:column;gap:2px;justify-content:center;}
+  .cell .ttl{font-weight:800;font-size:13px;line-height:1.2;}
+  .cell .tg{font-size:10px;font-weight:800;opacity:.85;}
+  .cell.meal{background:var(--meal-bg);border-color:var(--meal-bd);color:#1f8c63;}
+  .cell.course{background:var(--course-bg);border-color:var(--course-bd);color:#6b3fd0;}
+  .cell.task{background:var(--pink-bg);border-color:var(--pink-bd);color:#c93b78;}
+  .cell.sport{background:var(--orange-bg);border-color:var(--orange-bd);color:#cf6f12;}
+  .cell.reading{background:var(--blue-bg);border-color:var(--blue-bd);color:#1f72c9;}
+  .cell.done{opacity:.62;}
+  .cell.done .ttl{text-decoration:line-through;}
+  .check{position:absolute;right:5px;bottom:5px;width:34px;height:34px;border-radius:50%;
+    border:2.5px dashed currentColor;background:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;color:inherit;}
+  .check.done{border-style:solid;background:currentColor;}
+  .check.done::after{content:'✓';color:#fff;font-weight:900;}
+  .check:active{transform:scale(.85);}
+  body.editmode td.col{cursor:pointer;}
+  body.editmode td.col:hover{outline:3px solid #ffd0e6;}
+  body.editmode .check{display:none;}
+  .editbadge{display:none;}
+  body.editmode .editbadge{display:inline;}
+
+  .banner{background:linear-gradient(135deg,#fff3c4,#ffe08a);border-radius:14px;padding:8px 14px;
+    font-weight:800;margin-bottom:10px;border:2px solid #ffd24d;color:#9a6b00;font-size:14px;}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--soft);margin:6px 2px 12px;}
+  .legend b{display:inline-flex;align-items:center;gap:5px;font-weight:700;}
+  .sw{width:14px;height:14px;border-radius:5px;display:inline-block;border:2px solid;}
+
+  /* fx */
+  #fx{position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden;}
+  .fly{position:absolute;will-change:transform,opacity;}
+
+  /* modal */
+  .mask{position:fixed;inset:0;background:rgba(60,40,70,.45);display:none;z-index:100;align-items:center;justify-content:center;padding:18px;}
+  .mask.show{display:flex;}
+  .modal{background:#fff;border-radius:22px;max-width:440px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+  .modal h2{margin:0 0 12px;font-size:19px;}
+  .modal label{font-size:12px;color:var(--soft);display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+  .modal input,.modal select{padding:11px;border-radius:12px;border:2px solid #eadcf0;font-size:15px;font-family:inherit;}
+  .typepick{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+  .typepick button{padding:10px 4px;border-radius:12px;border:2px solid #eee;background:#fff;font-weight:800;font-size:13px;}
+  .typepick button[data-on="1"]{color:#fff;}
+  .modal-foot{display:flex;gap:8px;justify-content:space-between;margin-top:8px;}
+  .save{background:linear-gradient(135deg,#ff7fb6,#ff5fa2);color:#fff;padding:11px 20px;border-radius:14px;font-weight:800;}
+  .ghost{background:#f4eef8;color:var(--soft);padding:11px 16px;border-radius:14px;font-weight:700;}
+  .danger{background:#ffe7ec;color:#e3556e;padding:11px 16px;border-radius:14px;font-weight:700;}
+  .foot{font-size:12px;color:var(--soft);text-align:center;margin-top:18px;line-height:1.7;}
+  table.detail{border-collapse:collapse;width:100%;min-width:0;border-spacing:0;}
+  table.detail th,table.detail td{border:1px solid #eee5f2;padding:9px 6px;text-align:center;font-size:14px;}
+  table.detail thead th{background:#fbf3ff;color:var(--soft);font-size:13px;}
+  table.detail td.dname{font-weight:800;color:var(--ink);}
+  table.detail tr.istoday td{background:#fffaf0;}
+  table.detail tr.istoday td.dname{color:var(--pink);}
+  table.detail td.cp{color:var(--pink);font-weight:800;}
+  table.detail td.co{color:var(--orange);font-weight:800;}
+  table.detail td.cb{color:var(--blue);font-weight:800;}
+  table.detail td.sum{font-weight:900;}
+  table.detail tr.totrow td{background:#fdf1f7;font-weight:900;border-top:2px solid #ffd0e6;}
+</style>
+</head>
+<body>
+
+<div class="row spread">
+  <div>
+    <h1>🌈 我的一周计划表</h1>
+    <div class="pstate" id="todayLine" style="font-size:13px;margin-top:3px;"></div>
+    <span id="syncBadge" class="syncbadge local">📴 仅本机</span>
+  </div>
+  <div class="row">
+    <button class="btn" id="editToggle" onclick="toggleEdit()">✏️ 家长编辑</button>
+    <button class="btn" onclick="openDetail()">📊 最近7天</button>
+  </div>
+</div>
+
+<div class="head">
+  <div class="panel stars">
+    <div class="lead">今天<br>得到</div>
+    <div class="chips">
+      <div class="chip pink">⭐<span id="cPink">0</span><small>任务星</small></div>
+      <div class="chip orange">⭐<span id="cOrange">0</span><small>运动星</small></div>
+      <div class="chip blue">⭐<span id="cBlue">0</span><small>阅读星</small></div>
+    </div>
+  </div>
+  <div class="panel pomo">
+    <div class="ring-wrap">
+      <svg width="86" height="86" viewBox="0 0 86 86">
+        <defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ff5fa2"/></linearGradient></defs>
+        <circle class="ring-bg" cx="43" cy="43" r="37"/>
+        <circle class="ring-fg" id="ring" cx="43" cy="43" r="37"/>
+      </svg>
+      <div class="clock"><div class="t" id="clock">25:00</div></div>
+    </div>
+    <div class="pomo-mid">
+      <div class="pomo-title">🍅 番茄专注钟</div>
+      <div class="presets" id="presets"></div>
+      <div class="pomo-ctrl">
+        <button class="start" id="startBtn" onclick="pomoToggle()">▶ 开始</button>
+        <button class="reset" onclick="pomoReset()">↺</button>
+        <input type="number" id="customMin" min="1" max="120" value="25" title="自定义分钟">
+        <button class="pre" onclick="setCustom()">设定</button>
+      </div>
+      <div class="pstate" id="pstate">准备好啦</div>
+    </div>
+  </div>
+</div>
+
+<div id="banner"></div>
+<div class="gridwrap"><div id="grid"></div></div>
+
+<div class="foot">
+  星星按「日期」记录，明细只看最近7天，页面只显示今天的，旧记录自动滚动清除<br>
+  ☁️ 你和孩子打开同一链接即<b>实时互通</b>，打勾/星星自动同步，无需任何手动操作
+</div>
+
+<div id="fx"></div>
+
+<!-- weekly detail -->
+<div class="mask" id="detailMask">
+  <div class="modal" style="max-width:520px">
+    <h2 id="detailTitle">📊 最近7天星星明细</h2>
+    <div id="detailBody"></div>
+    <div class="modal-foot" style="justify-content:flex-end">
+      <button class="save" onclick="document.getElementById('detailMask').classList.remove('show')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- cell editor -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <h2 id="mTitle">填写格子</h2>
+    <label>内容（留空=清除这格）
+      <input type="text" id="eTitle" placeholder="例如：乐读语文">
+    </label>
+    <label>类型
+      <div class="typepick" id="typepick"></div>
+    </label>
+    <label>时长
+      <select id="eSpan">
+        <option value="1">30 分钟</option>
+        <option value="2">1 小时</option>
+        <option value="3">1.5 小时</option>
+        <option value="4">2 小时</option>
+      </select>
+    </label>
+    <div class="modal-foot">
+      <button class="danger" onclick="clearCell()">🗑 清除</button>
+      <div class="row">
+        <button class="ghost" onclick="closeModal()">取消</button>
+        <button class="save" onclick="saveCell()">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase 实时数据库 SDK（离线/未配置时会自动跳过，不影响本机使用） -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const DAYS=['周一','周二','周三','周四','周五','周六','周日'];
+const SLOTS=['13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00'];
+const NSLOT=SLOTS.length; // 14 rows
+const TYPE={
+  meal:{tag:'日程',star:null},
+  course:{tag:'课程',star:null},
+  task:{tag:'任务',star:'pink'},
+  sport:{tag:'运动',star:'orange'},
+  reading:{tag:'阅读',star:'blue'},
+};
+const STAR_COLOR={pink:'#ff5fa2',orange:'#ff9b2f',blue:'#3aa0ff'};
+let _i=0;const nid=()=>'a'+Date.now().toString(36)+(_i++);
+
+// slot index helper for defaults
+const SI={'13:30':0,'14:00':1,'14:30':2,'15:00':3,'15:30':4,'16:00':5,'16:30':6,'17:00':7,'17:30':8,'18:00':9,'18:30':10,'19:00':11,'19:30':12,'20:00':13};
+function A(day,start,span,t,y){return{id:nid(),d:day,s:SI[start],span,t,y};}
+const DEFAULT_ACTS=[
+  // 周一
+  A(0,'13:30',2,'吃午饭','meal'),A(0,'14:30',1,'口语','course'),A(0,'15:00',1,'乐读计算1页','task'),
+  A(0,'15:30',2,'阅读中文+英文书各1本','reading'),A(0,'16:30',2,'游泳、洗澡','sport'),
+  A(0,'17:30',2,'吃晚饭','meal'),A(0,'18:30',3,'乐读语文','course'),
+  // 周二
+  A(1,'13:30',2,'吃午饭','meal'),A(1,'14:30',1,'口语','course'),A(1,'15:00',1,'乐读计算1页','task'),
+  A(1,'15:30',1,'math 放大镜','course'),A(1,'16:00',2,'乐读语文作业','task'),
+  A(1,'17:30',2,'吃晚饭','meal'),A(1,'19:00',3,'科学实验','course'),
+  // 周三 无作业日
+  A(2,'13:30',2,'吃午饭','meal'),A(2,'14:30',1,'口语','course'),A(2,'16:00',3,'画画','course'),
+  A(2,'18:00',2,'吃晚饭','meal'),
+  // 周四
+  A(3,'13:30',2,'吃午饭','meal'),A(3,'14:30',1,'口语','course'),A(3,'15:00',1,'乐读计算1页','task'),
+  A(3,'16:00',2,'游泳','course'),A(3,'18:00',2,'吃晚饭','meal'),
+  // 周五
+  A(4,'13:30',2,'吃午饭','meal'),A(4,'14:30',1,'口语','course'),A(4,'15:00',1,'乐读计算1页','task'),
+  A(4,'16:00',1,'math 放大镜','course'),A(4,'16:30',3,'乐读数学','course'),A(4,'18:00',2,'吃晚饭','meal'),
+  // 周六
+  A(5,'16:00',1,'乐读英语','course'),
+];
+const DEFAULT_NOTES={2:'🎉 周三 无作业日 · 空档时间自由安排'};
+
+// ---- storage ----
+function load(k,f){try{const v=JSON.parse(localStorage.getItem(k));return v??f;}catch(e){return f;}}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function isoOf(dt){return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
+function todayISO(){return isoOf(new Date());}
+function todayIdx(){return (new Date().getDay()+6)%7;}
+function mondayDate(){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d;}
+function colISO(d){const m=mondayDate();m.setDate(m.getDate()+d);return isoOf(m);}
+
+let acts=load('sp_acts',null)||JSON.parse(JSON.stringify(DEFAULT_ACTS));
+acts.forEach(a=>{if(!a.id)a.id=nid();});
+let notes=load('sp_notes',null)||DEFAULT_NOTES;
+
+// prog: stars keyed by ISO date {pink,orange,blue}; done keyed by "ISOdate|actId"
+let prog=load('sp_prog',null);
+if(!prog||typeof prog!=='object'||!prog.done||!prog.stars||prog.weekId!==undefined){prog={done:{},stars:{}};}
+function dateStars(iso){prog.stars[iso]=prog.stars[iso]||{pink:0,orange:0,blue:0};return prog.stars[iso];}
+// keep only a rolling window: last 14 days + the 7 columns of the current week
+function prune(){
+  const keep=new Set();const t=new Date();t.setHours(0,0,0,0);
+  for(let i=0;i<14;i++){const d=new Date(t);d.setDate(t.getDate()-i);keep.add(isoOf(d));}
+  for(let d=0;d<7;d++)keep.add(colISO(d));
+  for(const k in prog.stars){if(!keep.has(k))delete prog.stars[k];}
+  for(const k in prog.done){if(!keep.has(k.split('|')[0]))delete prog.done[k];}
+}
+
+let editMode=false;
+
+// ---- render ----
+function buildOcc(){
+  const occ=Array.from({length:7},()=>Array(NSLOT).fill(null));
+  acts.forEach(a=>{
+    if(a.d<0||a.d>6||a.s<0||a.s>=NSLOT)return;
+    occ[a.d][a.s]=a;
+    for(let k=1;k<a.span&&a.s+k<NSLOT;k++)occ[a.d][a.s+k]='cov';
+  });
+  return occ;
+}
+function renderGrid(){
+  const occ=buildOcc();const ti=todayIdx();
+  let h='<table><thead><tr><th class="timehead"></th>';
+  const mon=new Date();mon.setDate(mon.getDate()-ti);
+  DAYS.forEach((nm,i)=>{const dt=new Date(mon);dt.setDate(mon.getDate()+i);
+    h+=`<th class="day${i===ti?' today':''}">${nm}<small>${dt.getMonth()+1}/${dt.getDate()}${i===ti?' 今天':''}</small></th>`;});
+  h+='</tr></thead><tbody>';
+  for(let r=0;r<NSLOT;r++){
+    h+=`<tr><td class="time">${SLOTS[r]}</td>`;
+    for(let d=0;d<7;d++){
+      const c=occ[d][r];
+      if(c==='cov')continue;
+      const todayCls=d===ti?' todaycol':'';
+      if(c){
+        const star=TYPE[c.y].star;const isDone=star&&prog.done[todayISO()+'|'+c.id];
+        h+=`<td class="col${todayCls}" rowspan="${c.span}" data-d="${d}" data-s="${r}" data-id="${c.id}">
+          <div class="cell ${c.y}${isDone?' done':''}">
+            <div class="ttl">${esc(c.t)}</div>
+            <div class="tg">${TYPE[c.y].tag}</div>
+            ${star?`<div class="check${isDone?' done':''}" data-check="${c.id}"></div>`:''}
+          </div></td>`;
+      }else{
+        h+=`<td class="col${todayCls}" data-d="${d}" data-s="${r}"></td>`;
+      }
+    }
+    h+='</tr>';
+  }
+  h+='</tbody></table>';
+  document.getElementById('grid').innerHTML=h;
+  // banner note for today
+  const note=notes[ti];
+  document.getElementById('banner').innerHTML=note?`<div class="banner">${esc(note)}</div>`:'';
+  // wire events
+  document.querySelectorAll('#grid td.col').forEach(td=>{
+    td.onclick=(e)=>{
+      if(editMode){openCell(+td.dataset.d,+td.dataset.s,td.dataset.id||null);return;}
+      const ck=e.target.closest('[data-check]');
+      if(ck){toggleDone(ck.getAttribute('data-check'),ck);}
+    };
+  });
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function renderStars(){
+  const s=dateStars(todayISO());
+  document.getElementById('cPink').textContent=s.pink;
+  document.getElementById('cOrange').textContent=s.orange;
+  document.getElementById('cBlue').textContent=s.blue;
+}
+function renderTop(){
+  const d=new Date();
+  document.getElementById('todayLine').textContent=`今天 ${d.getMonth()+1}月${d.getDate()}日 ${DAYS[todayIdx()]}`;
+}
+function renderAll(){renderTop();renderGrid();renderStars();}
+
+// ---- completion ----
+function toggleDone(id,el){
+  const a=acts.find(x=>x.id===id);if(!a)return;const star=TYPE[a.y].star;if(!star)return;
+  // 完成状态 + 星星都归属「完成的那一天」(今天)。没完成的任务在任何一天都显示未完成。
+  const di=todayISO(),key=di+'|'+id,s=dateStars(di);
+  if(prog.done[key]){delete prog.done[key];s[star]=Math.max(0,s[star]-1);}
+  else{prog.done[key]=true;s[star]++;burst(el,star);ding();}
+  save('sp_prog',prog);pushProg();renderGrid();renderStars();
+}
+
+// ---- star burst ----
+function burst(srcEl,star){
+  const fx=document.getElementById('fx');const r=srcEl.getBoundingClientRect();
+  const cx=r.left+r.width/2,cy=r.top+r.height/2,color=STAR_COLOR[star];
+  const main=document.createElement('div');main.className='fly';main.textContent='⭐';
+  main.style.left=cx+'px';main.style.top=cy+'px';main.style.fontSize='42px';main.style.filter=`drop-shadow(0 0 6px ${color})`;
+  fx.appendChild(main);
+  main.animate([{transform:'translate(-50%,-50%) scale(.2)',opacity:1},
+    {transform:'translate(-50%,-180%) scale(1.7)',opacity:1,offset:.6},
+    {transform:'translate(-50%,-260%) scale(1)',opacity:0}],{duration:1100,easing:'cubic-bezier(.2,.9,.3,1)'}).onfinish=()=>main.remove();
+  for(let i=0;i<10;i++){
+    const p=document.createElement('div');p.className='fly';p.textContent=['✨','⭐','💫','🌟'][i%4];
+    p.style.left=cx+'px';p.style.top=cy+'px';p.style.fontSize=(13+Math.random()*14)+'px';fx.appendChild(p);
+    const ang=Math.PI*2*i/10+Math.random(),dist=60+Math.random()*70;
+    p.animate([{transform:'translate(-50%,-50%) scale(.3)',opacity:1},
+      {transform:`translate(${Math.cos(ang)*dist-50}%,${Math.sin(ang)*dist-50}%) scale(1)`,opacity:1,offset:.7},
+      {transform:`translate(${Math.cos(ang)*dist*1.3-50}%,${Math.sin(ang)*dist*1.3-50}%) scale(.4)`,opacity:0}],
+      {duration:900+Math.random()*400,easing:'ease-out'}).onfinish=()=>p.remove();
+  }
+}
+let AC;function tone(f,dur,type='sine',vol=.15){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();
+  const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;o.connect(g);g.connect(AC.destination);
+  g.gain.setValueAtTime(vol,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+dur);o.start();o.stop(AC.currentTime+dur);}catch(e){}}
+function ding(){tone(880,.12);setTimeout(()=>tone(1320,.18),90);}
+function alarm(){let n=0;const iv=setInterval(()=>{tone(660,.25,'square',.2);if(++n>=4)clearInterval(iv);},300);}
+
+// ---- pomodoro ----
+const RL=2*Math.PI*37,ringEl=document.getElementById('ring');ringEl.style.strokeDasharray=RL;
+let pTotal=25*60,pLeft=25*60,pTimer=null,pRun=false;const PRESETS=[10,15,20,25,30];
+function renderPresets(){const b=document.getElementById('presets');b.innerHTML='';PRESETS.forEach(m=>{
+  const x=document.createElement('button');x.className='pre'+(pTotal===m*60?' on':'');x.textContent=m;x.onclick=()=>setPomo(m);b.appendChild(x);});}
+function setPomo(m){pomoStop();pTotal=m*60;pLeft=pTotal;document.getElementById('customMin').value=m;renderPresets();drawPomo();document.getElementById('pstate').textContent='准备好啦';}
+function setCustom(){let m=parseInt(document.getElementById('customMin').value)||25;m=Math.min(120,Math.max(1,m));setPomo(m);}
+function drawPomo(){document.getElementById('clock').textContent=String(Math.floor(pLeft/60)).padStart(2,'0')+':'+String(pLeft%60).padStart(2,'0');
+  ringEl.style.strokeDashoffset=RL*(1-pLeft/pTotal);}
+function pomoToggle(){pRun?pomoStop():pomoStart();}
+function pomoStart(){if(pLeft<=0)pLeft=pTotal;pRun=true;const b=document.getElementById('startBtn');b.textContent='⏸';b.className='pause';
+  document.getElementById('pstate').textContent='专注中…';tone(1040,.1);
+  pTimer=setInterval(()=>{pLeft--;drawPomo();if(pLeft<=0){pomoStop();document.getElementById('pstate').textContent='🎉 完成啦！';alarm();celebrate();}},1000);}
+function pomoStop(){pRun=false;clearInterval(pTimer);const b=document.getElementById('startBtn');b.textContent='▶ 开始';b.className='start';
+  if(pLeft>0&&pLeft<pTotal)document.getElementById('pstate').textContent='暂停了';}
+function pomoReset(){pomoStop();pLeft=pTotal;drawPomo();document.getElementById('pstate').textContent='准备好啦';}
+function celebrate(){const fx=document.getElementById('fx');for(let i=0;i<24;i++){const p=document.createElement('div');p.className='fly';
+  p.textContent=['🎉','⭐','✨','🍅','🌟'][i%5];p.style.fontSize=(20+Math.random()*20)+'px';p.style.left=(15+Math.random()*70)+'%';p.style.top='-5%';fx.appendChild(p);
+  p.animate([{transform:'translateY(0)',opacity:1},{transform:`translateY(${innerHeight+80}px) rotate(${360+Math.random()*360}deg)`,opacity:.9}],
+    {duration:1800+Math.random()*1200,easing:'ease-in'}).onfinish=()=>p.remove();}}
+
+// ---- parent edit ----
+function toggleEdit(){editMode=!editMode;document.body.classList.toggle('editmode',editMode);
+  const b=document.getElementById('editToggle');b.classList.toggle('on',editMode);b.textContent=editMode?'✅ 完成编辑':'✏️ 家长编辑';renderGrid();}
+let editTarget=null,pickType='task';
+function openCell(d,s,id){
+  editTarget={d,s,id};
+  const ex=id?acts.find(a=>a.id===id):null;
+  document.getElementById('mTitle').textContent=`${DAYS[d]} ${SLOTS[s]}`;
+  document.getElementById('eTitle').value=ex?ex.t:'';
+  document.getElementById('eSpan').value=ex?ex.span:1;
+  pickType=ex?ex.y:'task';renderTypePick();
+  document.getElementById('mask').classList.add('show');
+}
+function renderTypePick(){
+  const box=document.getElementById('typepick');box.innerHTML='';
+  Object.keys(TYPE).forEach(y=>{
+    const c={meal:'var(--meal)',course:'var(--course)',task:'var(--pink)',sport:'var(--orange)',reading:'var(--blue)'}[y];
+    const b=document.createElement('button');b.textContent=TYPE[y].tag;
+    if(y===pickType){b.style.background=c;b.dataset.on='1';b.style.borderColor=c;}else{b.style.color=c;b.style.borderColor=c;}
+    b.onclick=()=>{pickType=y;renderTypePick();};box.appendChild(b);
+  });
+}
+function saveCell(){
+  const t=document.getElementById('eTitle').value.trim();
+  const span=parseInt(document.getElementById('eSpan').value)||1;
+  if(!t){clearCell();return;}
+  if(editTarget.id){const a=acts.find(x=>x.id===editTarget.id);Object.assign(a,{t,y:pickType,span});}
+  else{acts.push({id:nid(),d:editTarget.d,s:editTarget.s,span,t,y:pickType});}
+  save('sp_acts',acts);pushPlan();closeModal();renderGrid();
+}
+function clearCell(){if(editTarget.id){const a=acts.find(x=>x.id===editTarget.id);
+  if(a){const star=TYPE[a.y].star;
+    Object.keys(prog.done).forEach(k=>{if(k.endsWith('|'+a.id)){const di=k.split('|')[0];
+      if(star&&prog.stars[di])prog.stars[di][star]=Math.max(0,prog.stars[di][star]-1);delete prog.done[k];}});
+    save('sp_prog',prog);}
+  acts=acts.filter(x=>x.id!==editTarget.id);save('sp_acts',acts);pushPlan();pushProg();}closeModal();renderGrid();renderStars();}
+function closeModal(){document.getElementById('mask').classList.remove('show');}
+
+// ---- recent-7-days detail ----
+function openDetail(){
+  const t=new Date();t.setHours(0,0,0,0);
+  let tp=0,to=0,tb=0;
+  let h=`<div style="font-size:12px;color:var(--soft);margin-bottom:10px">最近 7 天 · 每天获得的星星数量（旧记录自动滚动清除）</div>`;
+  h+='<table class="detail"><thead><tr><th>日期</th><th>🩷任务星</th><th>🟠运动星</th><th>🔵阅读星</th><th>合计</th></tr></thead><tbody>';
+  for(let i=6;i>=0;i--){
+    const dt=new Date(t);dt.setDate(t.getDate()-i);const iso=isoOf(dt);const isToday=i===0;
+    const s=prog.stars[iso]||{pink:0,orange:0,blue:0};
+    const sum=s.pink+s.orange+s.blue;tp+=s.pink;to+=s.orange;tb+=s.blue;
+    const lbl=`${dt.getMonth()+1}/${dt.getDate()} ${DAYS[(dt.getDay()+6)%7]}`;
+    h+=`<tr class="${isToday?'istoday':''}"><td class="dname">${lbl}${isToday?' ·今天':''}</td>
+      <td class="cp">${s.pink}</td><td class="co">${s.orange}</td><td class="cb">${s.blue}</td><td class="sum">${sum}</td></tr>`;
+  }
+  h+=`<tr class="totrow"><td>7天合计</td><td class="cp">${tp}</td><td class="co">${to}</td><td class="cb">${tb}</td><td class="sum">${tp+to+tb}</td></tr>`;
+  h+='</tbody></table>';
+  document.getElementById('detailBody').innerHTML=h;
+  document.getElementById('detailMask').classList.add('show');
+}
+
+// ====== 实时同步（Firebase 实时数据库）======
+// 用法：去 Firebase 建一个免费项目，把下面 firebaseConfig 换成你自己的配置即可开启实时同步。
+// 不填（保持占位文字）则自动只在本机使用，其它功能照常。你和孩子用同一份文件、同一个 ROOM 就能互通。
+const firebaseConfig = {
+  apiKey: "AIzaSyACvEmJFu_tJpagvx0tL_nyoG64kGuHYDo",
+  authDomain: "eileen-plan-4c5c3.firebaseapp.com",
+  databaseURL: "https://eileen-plan-4c5c3-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "eileen-plan-4c5c3",
+  storageBucket: "eileen-plan-4c5c3.firebasestorage.app",
+  messagingSenderId: "650388219751",
+  appId: "1:650388219751:web:e17c30e044ba4fb02531c2"
+};
+const ROOM = "mykid-2026"; // 房间码：你和孩子保持一致即可同步；想重开一组就改这个名字
+
+let remoteRef=null, applyingRemote=false;
+function syncStatus(st){
+  const b=document.getElementById('syncBadge');if(!b)return;
+  const map={local:['local','📴 仅本机'],connecting:['connecting','⏳ 连接中…'],online:['online','☁️ 已同步'],error:['error','⚠️ 同步出错']};
+  const m=map[st]||map.local;b.className='syncbadge '+m[0];b.textContent=m[1];
+}
+function syncReady(){return typeof firebase!=='undefined'&&firebaseConfig.apiKey&&!/在这里|粘贴|YOUR_/.test(firebaseConfig.apiKey);}
+function initSync(){
+  if(!syncReady()){syncStatus('local');return;}
+  try{
+    if(!firebase.apps||!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+    const db=firebase.database();
+    remoteRef=db.ref('plans/'+ROOM);
+    syncStatus('connecting');
+    db.ref('.info/connected').on('value',s=>{syncStatus(s.val()?'online':'connecting');});
+    remoteRef.on('value',snap=>{
+      const v=snap.val();
+      if(!v){pushPlan();pushProg();return;} // 房间为空 → 用本机数据做种子
+      applyingRemote=true;
+      if(v.plan&&v.plan.acts){acts=v.plan.acts;acts.forEach(a=>{if(!a.id)a.id=nid();});notes=v.plan.notes||{};save('sp_acts',acts);save('sp_notes',notes);}
+      if(v.prog){prog={done:v.prog.done||{},stars:v.prog.stars||{}};prune();save('sp_prog',prog);}
+      applyingRemote=false;renderAll();
+    },err=>{syncStatus('error');});
+  }catch(e){console.warn('sync init fail',e);syncStatus('error');}
+}
+function pushPlan(){if(remoteRef&&!applyingRemote)remoteRef.child('plan').set({acts,notes,ts:Date.now()}).catch(e=>{console.warn('pushPlan fail',e);syncStatus('error');});}
+function pushProg(){if(remoteRef&&!applyingRemote)remoteRef.child('prog').set({done:prog.done,stars:prog.stars,ts:Date.now()}).catch(e=>{console.warn('pushProg fail',e);syncStatus('error');});}
+
+// ---- init ----
+prune();renderPresets();drawPomo();renderAll();initSync();
+let _lastISO=todayISO();
+setInterval(()=>{const now=todayISO();if(now!==_lastISO){_lastISO=now;prune();save('sp_prog',prog);pushProg();renderAll();}else renderStars();},60000);
+</script>
+</body>
+</html>
