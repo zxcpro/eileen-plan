@@ -54,6 +54,8 @@
   .chip.pink{border-color:var(--pink-bd);color:var(--pink);background:var(--pink-bg);}
   .chip.orange{border-color:var(--orange-bd);color:var(--orange);background:var(--orange-bg);}
   .chip.blue{border-color:var(--blue-bd);color:var(--blue);background:var(--blue-bg);}
+  .starnote{flex:1 1 160px;font-size:13px;font-weight:800;color:#cf6f12;background:#fff6e6;
+    border:2px dashed #ffd79a;border-radius:14px;padding:8px 12px;line-height:1.35;}
 
   /* pomodoro compact */
   .pomo{flex:0 0 auto;display:flex;align-items:center;gap:14px;}
@@ -91,6 +93,9 @@
     vertical-align:top;padding-top:3px;position:sticky;left:0;z-index:5;background:var(--bg);}
   td.col{background:#fafafa;border:2px dashed #eee;border-radius:12px;height:46px;}
   td.todaycol{background:#fff0f6;}
+  /* 工作日上午「上学中」合并块（不可编辑） */
+  td.schoolblock{border-radius:12px;}
+  .cell.school{background:#f1eef7;border-color:#ddd5ea;border-style:dashed;color:#a99fc0;align-items:center;text-align:center;}
   /* 整日高亮：一个边框把当天一整列框起来，而不是逐个任务描边 */
   #todayFrame{position:absolute;pointer-events:none;z-index:4;border:3px solid #ff5fa2;border-radius:16px;
     box-shadow:0 0 0 4px rgba(255,95,162,.16),0 6px 18px rgba(255,95,162,.22);}
@@ -188,6 +193,7 @@
       <div class="chip orange">⭐<span id="cOrange">0</span><small>运动星</small></div>
       <div class="chip blue">⭐<span id="cBlue">0</span><small>阅读星</small></div>
     </div>
+    <div class="starnote">🕗 每天 <b>20:10</b> 和妈妈视频盘点星星 ⭐</div>
   </div>
   <div class="panel pomo">
     <div class="ring-wrap">
@@ -296,8 +302,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
 const DAYS=['周一','周二','周三','周四','周五','周六','周日'];
-const SLOTS=['13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00'];
-const NSLOT=SLOTS.length; // 14 rows
+const SLOTS=['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00'];
+const NSLOT=SLOTS.length; // 25 行（08:00~20:00）
+const MORNING_END=SLOTS.indexOf('13:30'); // =11，工作日上午(8:00~13:00)用「上学中」合并块
+const SCHEMA_V=2; // s 坐标版本：v2 从 08:00 起算；旧 v1 从 13:30 起算，迁移时 s += 偏移(=MORNING_END)
+function migrateActs(arr,fromV){if((fromV||1)<SCHEMA_V){arr.forEach(a=>{if(typeof a.s==='number')a.s+=MORNING_END;});}return arr;}
 const TYPE={
   meal:{tag:'日程',star:null},
   free:{tag:'自由',star:null},
@@ -311,7 +320,7 @@ const STAR_COLOR={pink:'#ff5fa2',orange:'#ff9b2f',blue:'#3aa0ff'};
 let _i=0;const nid=()=>'a'+Date.now().toString(36)+(_i++);
 
 // slot index helper for defaults
-const SI={'13:30':0,'14:00':1,'14:30':2,'15:00':3,'15:30':4,'16:00':5,'16:30':6,'17:00':7,'17:30':8,'18:00':9,'18:30':10,'19:00':11,'19:30':12,'20:00':13};
+const SI={};SLOTS.forEach((t,i)=>{SI[t]=i;});
 function A(day,start,span,t,y){return{id:nid(),d:day,s:SI[start],span,t,y};}
 const DEFAULT_ACTS=[
   // 周一
@@ -345,8 +354,10 @@ function todayIdx(){return (new Date().getDay()+6)%7;}
 function mondayDate(){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d;}
 function colISO(d){const m=mondayDate();m.setDate(m.getDate()+d);return isoOf(m);}
 
-let acts=load('sp_acts',null)||JSON.parse(JSON.stringify(DEFAULT_ACTS));
+let acts=load('sp_acts',null);
+if(acts){migrateActs(acts,load('sp_schemaV',1));}else{acts=JSON.parse(JSON.stringify(DEFAULT_ACTS));}
 acts.forEach(a=>{if(!a.id)a.id=nid();});
+save('sp_schemaV',SCHEMA_V);save('sp_acts',acts);
 let notes=load('sp_notes',null)||DEFAULT_NOTES;
 
 // prog: stars keyed by ISO date {pink,orange,blue}; done keyed by "ISOdate|actId"
@@ -384,9 +395,14 @@ function renderGrid(){
   for(let r=0;r<NSLOT;r++){
     h+=`<tr><td class="time">${SLOTS[r]}</td>`;
     for(let d=0;d<7;d++){
+      const todayCls=d===ti?' todaycol':'';
+      // 工作日(周一~周五)上午 8:00~13:00 合并成一块「上学中」，周末则是正常可编辑格子
+      if(d<=4 && r<MORNING_END){
+        if(r===0)h+=`<td class="schoolblock" rowspan="${MORNING_END}"><div class="cell school"><div class="ttl">🏫 上学中</div></div></td>`;
+        continue;
+      }
       const c=occ[d][r];
       if(c==='cov')continue;
-      const todayCls=d===ti?' todaycol':'';
       if(c){
         const star=TYPE[c.y].star;const isDone=star&&prog.done[todayISO()+'|'+c.id];
         h+=`<td class="col${todayCls}" rowspan="${c.span}" data-d="${d}" data-s="${r}" data-id="${c.id}">
@@ -654,13 +670,20 @@ function initSync(){
       const v=snap.val();
       if(!v){pushPlan();pushProg();return;} // 房间为空 → 用本机数据做种子
       applyingRemote=true;
-      if(v.plan&&v.plan.acts){acts=v.plan.acts;acts.forEach(a=>{if(!a.id)a.id=nid();});notes=v.plan.notes||{};save('sp_acts',acts);save('sp_notes',notes);}
+      let needMigratePush=false;
+      if(v.plan&&v.plan.acts){
+        acts=v.plan.acts;
+        if((v.plan.schemaV||1)<SCHEMA_V){migrateActs(acts,v.plan.schemaV);needMigratePush=true;} // 一次性把旧坐标(13:30起)迁到新坐标(8:00起)
+        acts.forEach(a=>{if(!a.id)a.id=nid();});notes=v.plan.notes||{};
+        save('sp_acts',acts);save('sp_notes',notes);save('sp_schemaV',SCHEMA_V);
+      }
       if(v.prog){prog={done:v.prog.done||{},stars:v.prog.stars||{}};prune();save('sp_prog',prog);}
       applyingRemote=false;renderAll();
+      if(needMigratePush)pushPlan(); // 把迁移后的数据写回，其它设备就拿到新坐标
     },err=>{syncStatus('error');});
   }catch(e){console.warn('sync init fail',e);syncStatus('error');}
 }
-function pushPlan(){if(remoteRef&&!applyingRemote)remoteRef.child('plan').set({acts,notes,ts:Date.now()}).catch(e=>{console.warn('pushPlan fail',e);syncStatus('error');});}
+function pushPlan(){if(remoteRef&&!applyingRemote)remoteRef.child('plan').set({acts,notes,schemaV:SCHEMA_V,ts:Date.now()}).catch(e=>{console.warn('pushPlan fail',e);syncStatus('error');});}
 function pushProg(){if(remoteRef&&!applyingRemote)remoteRef.child('prog').set({done:prog.done,stars:prog.stars,ts:Date.now()}).catch(e=>{console.warn('pushProg fail',e);syncStatus('error');});}
 
 // ---- init ----

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>🌈 今日计划（手机版）</title>
+<style>
+  :root{
+    --pink:#ff5fa2; --pink-bg:#ffe6f1; --pink-bd:#ffb3d4;
+    --orange:#ff9b2f; --orange-bg:#fff0db; --orange-bd:#ffce93;
+    --blue:#3aa0ff; --blue-bg:#e2f1ff; --blue-bd:#a9d6ff;
+    --course:#9b6bff; --course-bg:#efe6ff; --course-bd:#cbb3ff;
+    --meal:#36c08a; --meal-bg:#e2f8ee; --meal-bd:#a7e7cc;
+    --free:#16b5b5; --free-bg:#dcf7f7; --free-bd:#9fe6e6;
+    --listen:#9c6b3f; --listen-bg:#f3e7da; --listen-bd:#d9b88f;
+    --ink:#3b3550; --soft:#8a82a3; --bg:#fff7fb;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:
+      radial-gradient(circle at 0% 0%,#ffe0ef 0,transparent 40%),
+      radial-gradient(circle at 100% 0%,#dcefff 0,transparent 38%),
+      var(--bg);
+    color:var(--ink);min-height:100vh;padding:0 0 90px;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;}
+
+  /* sticky header */
+  .top{position:sticky;top:0;z-index:20;backdrop-filter:blur(8px);
+    background:rgba(255,247,251,.92);padding:10px 14px 8px;border-bottom:1px solid #ffe0ef;}
+  .toprow{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  h1{font-size:18px;margin:0;display:flex;align-items:center;gap:6px;}
+  .sub{font-size:12px;color:var(--soft);margin-top:2px;}
+  .syncbadge{display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:10px;border:2px solid;}
+  .syncbadge.local{color:#8a82a3;border-color:#ddd;background:#f6f4fa;}
+  .syncbadge.connecting{color:#cf6f12;border-color:var(--orange-bd);background:var(--orange-bg);}
+  .syncbadge.online{color:#1f8c63;border-color:var(--meal-bd);background:var(--meal-bg);}
+  .syncbadge.error{color:#e3556e;border-color:#ffc6d2;background:#ffe7ec;}
+  .minibtn{background:#fff;border:2px solid #ffd0e6;color:var(--ink);font-weight:800;font-size:12px;
+    padding:6px 10px;border-radius:12px;box-shadow:0 2px 0 #ffd0e6;}
+  .minibtn:active{transform:translateY(2px);box-shadow:none;}
+
+  /* star chips */
+  .chips{display:flex;gap:8px;margin-top:9px;}
+  .chip{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;border-radius:14px;
+    padding:7px 4px;font-weight:800;font-size:19px;border:2px solid #eee;}
+  .chip small{font-size:10px;font-weight:700;}
+  .chip.pink{border-color:var(--pink-bd);color:var(--pink);background:var(--pink-bg);}
+  .chip.orange{border-color:var(--orange-bd);color:var(--orange);background:var(--orange-bg);}
+  .chip.blue{border-color:var(--blue-bd);color:var(--blue);background:var(--blue-bg);}
+
+  /* day tabs */
+  .tabs{display:flex;gap:7px;overflow-x:auto;padding:9px 14px 2px;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{flex:0 0 auto;min-width:54px;text-align:center;background:#fff;border:2px solid #ffe0ef;
+    border-radius:14px;padding:7px 6px;color:var(--soft);font-weight:800;font-size:14px;position:relative;}
+  .tab small{display:block;font-size:10px;font-weight:600;margin-top:1px;}
+  .tab.sel{background:linear-gradient(135deg,#ff7fb6,#ff5fa2);color:#fff;border-color:#ff5fa2;
+    box-shadow:0 4px 12px rgba(255,95,162,.4);}
+  .tab .dot{position:absolute;top:4px;right:6px;width:6px;height:6px;border-radius:50%;background:#ff5fa2;}
+  .tab.sel .dot{background:#fff;}
+
+  .banner{margin:10px 14px 0;background:linear-gradient(135deg,#fff3c4,#ffe08a);border-radius:14px;
+    padding:9px 13px;font-weight:800;border:2px solid #ffd24d;color:#9a6b00;font-size:14px;}
+
+  /* day list */
+  .list{padding:10px 14px 0;display:flex;flex-direction:column;gap:10px;}
+  .empty{text-align:center;color:var(--soft);font-size:14px;padding:40px 0;}
+  .acard{display:flex;align-items:stretch;gap:10px;background:#fff;border-radius:16px;padding:11px 12px;
+    border:2px solid #eee;border-left-width:7px;box-shadow:0 3px 10px rgba(150,120,170,.08);}
+  .atime{flex:0 0 62px;display:flex;flex-direction:column;justify-content:center;}
+  .atime b{font-size:21px;font-weight:900;letter-spacing:.5px;line-height:1.05;}
+  .atime small{font-size:12px;color:var(--soft);font-weight:700;margin-top:2px;}
+  .abody{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;}
+  .atitle{font-weight:800;font-size:16px;line-height:1.25;word-break:break-word;}
+  .atag{align-self:flex-start;font-size:11px;font-weight:800;padding:1px 8px;border-radius:8px;}
+  .acard.done{opacity:.6;}
+  .acard.done .atitle{text-decoration:line-through;}
+  .adone{flex:0 0 auto;align-self:center;width:30px;height:30px;border-radius:50%;
+    background:currentColor;display:flex;align-items:center;justify-content:center;}
+  .adone::after{content:'✓';color:#fff;font-weight:900;font-size:16px;}
+
+  .acard.meal{border-color:var(--meal-bd);} .acard.meal .atime b{color:var(--meal);} .acard.meal .atag{background:var(--meal-bg);color:#1f8c63;}
+  .acard.free{border-color:var(--free-bd);} .acard.free .atime b{color:var(--free);} .acard.free .atag{background:var(--free-bg);color:#0e8a8a;}
+  .acard.listen{border-color:var(--listen-bd);} .acard.listen .atime b{color:var(--listen);} .acard.listen .atag{background:var(--listen-bg);color:#7a4f25;}
+  .acard.course{border-color:var(--course-bd);} .acard.course .atime b{color:var(--course);} .acard.course .atag{background:var(--course-bg);color:#6b3fd0;}
+  .acard.task{border-color:var(--pink-bd);color:var(--pink);} .acard.task .atime b{color:var(--pink);} .acard.task .atag{background:var(--pink-bg);color:#c93b78;}
+  .acard.sport{border-color:var(--orange-bd);color:var(--orange);} .acard.sport .atime b{color:var(--orange);} .acard.sport .atag{background:var(--orange-bg);color:#cf6f12;}
+  .acard.reading{border-color:var(--blue-bd);color:var(--blue);} .acard.reading .atime b{color:var(--blue);} .acard.reading .atag{background:var(--blue-bg);color:#1f72c9;}
+  .acard.task .atitle,.acard.sport .atitle,.acard.reading .atitle{color:var(--ink);}
+  /* 课程 / 日程：统一换成蓝灰底色，让需要大人准备前置环境的这几条一眼显眼 */
+  .acard.hl{background:#dde7f4;border-color:#9fb4d6;}
+  .acard.hl .atime b{color:#3a4d70;}
+  .acard.hl .atitle{color:#2b3650;}
+  .acard.hl .atag{background:#fff;color:#465a80;border:1px solid #b3c3de;}
+
+  /* pomodoro */
+  .pomo{margin:16px 14px 0;background:#fff;border:2px solid #ffd9ec;border-radius:18px;padding:14px;
+    box-shadow:0 4px 14px rgba(255,140,190,.14);}
+  .pomo-title{font-weight:800;font-size:15px;margin-bottom:8px;}
+  .ptime{font-size:40px;font-weight:900;text-align:center;letter-spacing:1px;}
+  .pbar{height:8px;border-radius:6px;background:#ffe4ef;overflow:hidden;margin:8px 0 12px;}
+  .pbar>div{height:100%;width:100%;background:linear-gradient(90deg,#ff8a3d,#ff5fa2);transition:width .3s linear;}
+  .presets{display:flex;gap:6px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;}
+  .pre{background:#fff0f6;border:2px solid #ffd0e6;border-radius:11px;padding:6px 12px;font-weight:800;font-size:14px;color:var(--pink);}
+  .pre.on{background:var(--pink);color:#fff;}
+  .pctrl{display:flex;gap:8px;}
+  .pctrl button{flex:1;border-radius:13px;padding:11px;font-size:15px;font-weight:800;color:#fff;}
+  .start{background:linear-gradient(135deg,#7ee08a,#3fc66a);}
+  .pause{background:linear-gradient(135deg,#ffb454,#ff8a3d);}
+  .reset{background:linear-gradient(135deg,#b9a8d8,#9b8bc4);flex:0 0 56px;}
+
+  .foot{font-size:11px;color:var(--soft);text-align:center;margin:18px 16px 0;line-height:1.6;}
+
+  #fx{position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden;}
+  .fly{position:absolute;will-change:transform,opacity;}
+
+  /* modal */
+  .mask{position:fixed;inset:0;background:rgba(60,40,70,.45);display:none;z-index:100;align-items:center;justify-content:center;padding:18px;}
+  .mask.show{display:flex;}
+  .modal{background:#fff;border-radius:22px;max-width:440px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:86vh;overflow:auto;}
+  .modal h2{margin:0 0 12px;font-size:18px;text-align:center;}
+  .save{background:linear-gradient(135deg,#ff7fb6,#ff5fa2);color:#fff;padding:11px 20px;border-radius:14px;font-weight:800;}
+  .ghost{background:#f4eef8;color:var(--soft);padding:11px 16px;border-radius:14px;font-weight:700;}
+  .bookpick{display:flex;gap:12px;justify-content:center;margin:16px 0 8px;}
+  .bookbtn{width:64px;height:64px;border-radius:18px;border:2px solid var(--blue-bd);background:var(--blue-bg);
+    color:var(--blue);font-weight:900;font-size:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    line-height:1;box-shadow:0 3px 0 var(--blue-bd);}
+  .bookbtn small{font-size:12px;margin-top:2px;}
+  .bookbtn:active{transform:translateY(3px);box-shadow:none;}
+  table.detail{border-collapse:collapse;width:100%;}
+  table.detail th,table.detail td{border:1px solid #eee5f2;padding:9px 4px;text-align:center;font-size:14px;}
+  table.detail thead th{background:#fbf3ff;color:var(--soft);font-size:12px;}
+  table.detail td.dname{font-weight:800;font-size:12px;}
+  table.detail tr.istoday td{background:#fffaf0;}
+  table.detail tr.istoday td.dname{color:var(--pink);}
+  table.detail td.cp{color:var(--pink);font-weight:800;}
+  table.detail td.co{color:var(--orange);font-weight:800;}
+  table.detail td.cb{color:var(--blue);font-weight:800;}
+  table.detail tr.totrow td{background:#fdf1f7;font-weight:900;border-top:2px solid #ffd0e6;}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="toprow">
+    <div>
+      <h1>🌈 今日计划</h1>
+      <div class="sub" id="todayLine"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+      <span id="syncBadge" class="syncbadge local">📴 仅本机</span>
+      <div style="display:flex;gap:6px;">
+        <button class="minibtn" onclick="jumpToday()">今天</button>
+        <button class="minibtn" onclick="openDetail()">📊7天</button>
+      </div>
+    </div>
+  </div>
+  <div class="chips">
+    <div class="chip pink">⭐<span id="cPink">0</span><small>任务星</small></div>
+    <div class="chip orange">⭐<span id="cOrange">0</span><small>运动星</small></div>
+    <div class="chip blue">⭐<span id="cBlue">0</span><small>阅读星</small></div>
+  </div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+<div id="banner"></div>
+<div class="list" id="list"></div>
+
+<div class="foot">
+  ☁️ 与 iPad 计划表用同一房间实时互通，打勾/星星自动同步<br>
+  星星按「完成那天」记录，只显示今天的
+</div>
+
+<!-- 7-day detail -->
+<div class="mask" id="detailMask">
+  <div class="modal" style="max-width:460px">
+    <h2>📊 最近7天星星明细</h2>
+    <div id="detailBody"></div>
+    <div style="text-align:center;margin-top:12px"><button class="save" onclick="document.getElementById('detailMask').classList.remove('show')">关闭</button></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const DAYS=['周一','周二','周三','周四','周五','周六','周日'];
+const SLOTS=['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00'];
+const NSLOT=SLOTS.length;
+const MORNING_END=SLOTS.indexOf('13:30'); // =11
+const SCHEMA_V=2; // 与 index.html 一致：v2 从 08:00 起算
+function migrateActs(arr,fromV){if((fromV||1)<SCHEMA_V){arr.forEach(a=>{if(typeof a.s==='number')a.s+=MORNING_END;});}return arr;}
+const TYPE={
+  meal:{tag:'日程',star:null},
+  free:{tag:'自由',star:null},
+  listen:{tag:'听力',star:null},
+  course:{tag:'课程',star:null},
+  task:{tag:'任务',star:'pink'},
+  sport:{tag:'运动',star:'orange'},
+  reading:{tag:'阅读',star:'blue'},
+};
+const STAR_COLOR={pink:'#ff5fa2',orange:'#ff9b2f',blue:'#3aa0ff'};
+let _i=0;const nid=()=>'a'+Date.now().toString(36)+(_i++);
+
+function load(k,f){try{const v=JSON.parse(localStorage.getItem(k));return v??f;}catch(e){return f;}}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function isoOf(dt){return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
+function todayISO(){return isoOf(new Date());}
+function todayIdx(){return (new Date().getDay()+6)%7;}
+function mondayDate(){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d;}
+function colISO(d){const m=mondayDate();m.setDate(m.getDate()+d);return isoOf(m);}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function spanLabel(sp){const m=sp*30;return m<60?m+'分钟':(m/60)+'小时';}
+function endTime(s,sp){const e=s+sp;return e<SLOTS.length?SLOTS[e]:'20:30';}
+
+let acts=load('sp_acts',[])||[];
+migrateActs(acts,load('sp_schemaV',1));
+acts.forEach(a=>{if(!a.id)a.id=nid();});
+save('sp_schemaV',SCHEMA_V);
+let notes=load('sp_notes',{})||{};
+let prog=load('sp_prog',null);
+if(!prog||typeof prog!=='object'||!prog.done||!prog.stars){prog={done:{},stars:{}};}
+function dateStars(iso){prog.stars[iso]=prog.stars[iso]||{pink:0,orange:0,blue:0};return prog.stars[iso];}
+function prune(){
+  const keep=new Set();const t=new Date();t.setHours(0,0,0,0);
+  for(let i=0;i<14;i++){const d=new Date(t);d.setDate(t.getDate()-i);keep.add(isoOf(d));}
+  for(let d=0;d<7;d++)keep.add(colISO(d));
+  for(const k in prog.stars){if(!keep.has(k))delete prog.stars[k];}
+  for(const k in prog.done){if(!keep.has(k.split('|')[0]))delete prog.done[k];}
+}
+
+let selDay=todayIdx();
+
+// ---- render ----
+function renderTop(){
+  const d=new Date();
+  document.getElementById('todayLine').textContent=`今天 ${d.getMonth()+1}月${d.getDate()}日 ${DAYS[todayIdx()]}`;
+}
+function renderStars(){
+  const s=dateStars(todayISO());
+  document.getElementById('cPink').textContent=s.pink;
+  document.getElementById('cOrange').textContent=s.orange;
+  document.getElementById('cBlue').textContent=s.blue;
+}
+function renderTabs(){
+  const ti=todayIdx(),mon=mondayDate();
+  let h='';
+  DAYS.forEach((nm,i)=>{
+    const dt=new Date(mon);dt.setDate(mon.getDate()+i);
+    h+=`<button class="tab${i===selDay?' sel':''}" onclick="selectDay(${i})">${nm}
+      <small>${dt.getMonth()+1}/${dt.getDate()}</small>${i===ti?'<span class="dot"></span>':''}</button>`;
+  });
+  const t=document.getElementById('tabs');t.innerHTML=h;
+  const sel=t.querySelector('.tab.sel');if(sel)sel.scrollIntoView({inline:'center',block:'nearest'});
+}
+function renderDay(){
+  const items=acts.filter(a=>a.d===selDay).sort((x,y)=>x.s-y.s);
+  const note=notes[selDay];
+  document.getElementById('banner').innerHTML=note?`<div class="banner">${esc(note)}</div>`:'';
+  if(!items.length){document.getElementById('list').innerHTML='<div class="empty">这一天还没有安排哦 ~</div>';return;}
+  let h='';
+  items.forEach(a=>{
+    const ty=TYPE[a.y]||TYPE.course;const star=ty.star;
+    const done=star&&prog.done[todayISO()+'|'+a.id];
+    const needHelp=(a.y==='course'||a.y==='meal'); // 课程/日程：统一底色，让这几条一眼显眼（需大人准备前置环境）
+    h+=`<div class="acard ${a.y}${done?' done':''}${needHelp?' hl':''}">
+      <div class="atime"><b>${SLOTS[a.s]}</b><small>${endTime(a.s,a.span)}</small></div>
+      <div class="abody"><div class="atitle">${esc(a.t)}</div><div class="atag">${ty.tag}</div></div>
+      ${done?'<div class="adone">✓</div>':''}
+    </div>`;
+  });
+  document.getElementById('list').innerHTML=h;
+}
+function renderAll(){renderTop();renderStars();renderTabs();renderDay();}
+function selectDay(i){selDay=i;renderTabs();renderDay();}
+function jumpToday(){selectDay(todayIdx());}
+
+// ---- 7-day detail ----
+function openDetail(){
+  const t=new Date();t.setHours(0,0,0,0);
+  let tp=0,to=0,tb=0;
+  let h='<table class="detail"><thead><tr><th>日期</th><th>🩷任务</th><th>🟠运动</th><th>🔵阅读</th><th>合计</th></tr></thead><tbody>';
+  for(let i=6;i>=0;i--){
+    const dt=new Date(t);dt.setDate(t.getDate()-i);const iso=isoOf(dt);const isToday=i===0;
+    const s=prog.stars[iso]||{pink:0,orange:0,blue:0};const sum=s.pink+s.orange+s.blue;
+    tp+=s.pink;to+=s.orange;tb+=s.blue;
+    h+=`<tr class="${isToday?'istoday':''}"><td class="dname">${dt.getMonth()+1}/${dt.getDate()} ${DAYS[(dt.getDay()+6)%7]}${isToday?'·今天':''}</td>
+      <td class="cp">${s.pink}</td><td class="co">${s.orange}</td><td class="cb">${s.blue}</td><td>${sum}</td></tr>`;
+  }
+  h+=`<tr class="totrow"><td>7天合计</td><td class="cp">${tp}</td><td class="co">${to}</td><td class="cb">${tb}</td><td>${tp+to+tb}</td></tr></tbody></table>`;
+  document.getElementById('detailBody').innerHTML=h;
+  document.getElementById('detailMask').classList.add('show');
+}
+
+// ====== 实时同步（与 index.html 同一房间）======
+const firebaseConfig = {
+  apiKey: "AIzaSyACvEmJFu_tJpagvx0tL_nyoG64kGuHYDo",
+  authDomain: "eileen-plan-4c5c3.firebaseapp.com",
+  databaseURL: "https://eileen-plan-4c5c3-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "eileen-plan-4c5c3",
+  storageBucket: "eileen-plan-4c5c3.firebasestorage.app",
+  messagingSenderId: "650388219751",
+  appId: "1:650388219751:web:e17c30e044ba4fb02531c2"
+};
+const ROOM = "eileen-7gq4m9x2kd"; // 必须和 index.html 一致
+
+// 手机端为「只读」：仅监听远端数据展示，绝不写入，避免误改计划/进度
+function syncStatus(st){
+  const b=document.getElementById('syncBadge');if(!b)return;
+  const map={local:['local','📴 仅本机'],connecting:['connecting','⏳ 连接中…'],online:['online','☁️ 已同步'],error:['error','⚠️ 同步出错']};
+  const m=map[st]||map.local;b.className='syncbadge '+m[0];b.textContent=m[1];
+}
+function syncReady(){return typeof firebase!=='undefined'&&firebaseConfig.apiKey&&!/在这里|粘贴|YOUR_/.test(firebaseConfig.apiKey);}
+function initSync(){
+  if(!syncReady()){syncStatus('local');return;}
+  try{
+    if(!firebase.apps||!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+    const db=firebase.database();
+    syncStatus('connecting');
+    db.ref('.info/connected').on('value',s=>{syncStatus(s.val()?'online':'connecting');});
+    db.ref('plans/'+ROOM).on('value',snap=>{
+      const v=snap.val();if(!v)return;
+      if(v.plan&&v.plan.acts){acts=v.plan.acts;migrateActs(acts,v.plan.schemaV);acts.forEach(a=>{if(!a.id)a.id=nid();});notes=v.plan.notes||{};save('sp_acts',acts);save('sp_notes',notes);save('sp_schemaV',SCHEMA_V);}
+      if(v.prog){prog={done:v.prog.done||{},stars:v.prog.stars||{}};prune();save('sp_prog',prog);}
+      renderAll();
+    },err=>{syncStatus('error');});
+  }catch(e){console.warn('sync init fail',e);syncStatus('error');}
+}
+
+// ---- init ----
+prune();renderAll();initSync();
+let _lastISO=todayISO();
+setInterval(()=>{const now=todayISO();if(now!==_lastISO){_lastISO=now;selDay=todayIdx();prune();renderAll();}else renderStars();},60000);
+</script>
+</body>
+</html>
