@@ -12,6 +12,7 @@
     --course:#9b6bff; --course-bg:#efe6ff; --course-bd:#cbb3ff;
     --meal:#36c08a; --meal-bg:#e2f8ee; --meal-bd:#a7e7cc;
     --free:#16b5b5; --free-bg:#dcf7f7; --free-bd:#9fe6e6;
+    --listen:#9c6b3f; --listen-bg:#f3e7da; --listen-bd:#d9b88f;
     --ink:#3b3550; --soft:#8a82a3;
     --bg:#fff7fb;
   }
@@ -67,6 +68,7 @@
   .presets{display:flex;gap:5px;}
   .pre{background:#fff0f6;border:2px solid #ffd0e6;border-radius:10px;padding:4px 8px;font-weight:700;font-size:12px;color:var(--pink);}
   .pre.on{background:var(--pink);color:#fff;}
+  .pre.setbtn{color:#1a1a1a;}
   .pomo-ctrl{display:flex;gap:6px;}
   .pomo-ctrl button{border-radius:11px;padding:7px 12px;font-size:13px;font-weight:800;color:#fff;}
   .start{background:linear-gradient(135deg,#7ee08a,#3fc66a);}
@@ -76,21 +78,27 @@
   .pstate{font-size:11px;color:var(--soft);}
 
   /* grid */
-  .gridwrap{overflow-x:auto;padding-bottom:8px;}
+  .gridwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px;position:relative;}
   table{border-collapse:separate;border-spacing:5px;width:100%;min-width:880px;}
   th,td{vertical-align:top;}
   th.day{background:#fff;border:2px solid #ffe0ef;border-radius:14px;padding:8px 4px;text-align:center;font-size:14px;color:var(--soft);}
   th.day.today{background:linear-gradient(135deg,#ff7fb6,#ff5fa2);color:#fff;border-color:#ff5fa2;}
   th.day small{display:block;font-size:11px;font-weight:500;margin-top:2px;}
-  th.timehead{width:60px;background:transparent;border:none;}
-  td.time{width:60px;text-align:center;font-weight:800;font-size:12px;color:var(--soft);padding-top:14px;}
+  /* 冻结左侧时间列：左右滑动周一~周日时，时间列固定不动 */
+  th.timehead{width:56px;background:var(--bg);border:none;position:sticky;left:0;z-index:5;}
+  td.time{width:56px;text-align:right;padding-right:8px;font-weight:800;font-size:13px;color:var(--ink);
+    vertical-align:top;padding-top:3px;position:sticky;left:0;z-index:5;background:var(--bg);}
   td.col{background:#fafafa;border:2px dashed #eee;border-radius:12px;height:46px;}
-  td.todaycol{background:#fffdf4;border-color:#ffe7a8;}
+  td.todaycol{background:#fff0f6;}
+  /* 整日高亮：一个边框把当天一整列框起来，而不是逐个任务描边 */
+  #todayFrame{position:absolute;pointer-events:none;z-index:4;border:3px solid #ff5fa2;border-radius:16px;
+    box-shadow:0 0 0 4px rgba(255,95,162,.16),0 6px 18px rgba(255,95,162,.22);}
   .cell{border-radius:12px;height:100%;min-height:42px;padding:7px 8px;position:relative;border:2px solid;display:flex;flex-direction:column;gap:2px;justify-content:center;}
   .cell .ttl{font-weight:800;font-size:13px;line-height:1.2;}
   .cell .tg{font-size:10px;font-weight:800;opacity:.85;}
   .cell.meal{background:var(--meal-bg);border-color:var(--meal-bd);color:#1f8c63;}
   .cell.free{background:var(--free-bg);border-color:var(--free-bd);color:#0e8a8a;}
+  .cell.listen{background:var(--listen-bg);border-color:var(--listen-bd);color:#7a4f25;}
   .cell.course{background:var(--course-bg);border-color:var(--course-bd);color:#6b3fd0;}
   .cell.task{background:var(--pink-bg);border-color:var(--pink-bd);color:#c93b78;}
   .cell.sport{background:var(--orange-bg);border-color:var(--orange-bd);color:#cf6f12;}
@@ -192,7 +200,7 @@
         <button class="start" id="startBtn" onclick="pomoToggle()">▶ 开始</button>
         <button class="reset" onclick="pomoReset()">↺</button>
         <input type="number" id="customMin" min="1" max="120" value="25" title="自定义分钟">
-        <button class="pre" onclick="setCustom()">设定</button>
+        <button class="pre setbtn" onclick="setCustom()">设定</button>
       </div>
       <div class="pstate" id="pstate">准备好啦</div>
     </div>
@@ -270,6 +278,7 @@ const NSLOT=SLOTS.length; // 14 rows
 const TYPE={
   meal:{tag:'日程',star:null},
   free:{tag:'自由',star:null},
+  listen:{tag:'听力',star:null},
   course:{tag:'课程',star:null},
   task:{tag:'任务',star:'pink'},
   sport:{tag:'运动',star:'orange'},
@@ -382,7 +391,23 @@ function renderGrid(){
       if(ck){toggleDone(ck.getAttribute('data-check'),ck);}
     };
   });
+  positionTodayFrame();
+  requestAnimationFrame(positionTodayFrame);
 }
+// 把当天一整列用一个边框框起来（覆盖表头到最后一行），随横向滑动一起移动
+function positionTodayFrame(){
+  const wrap=document.querySelector('.gridwrap');if(!wrap)return;
+  const th=wrap.querySelector('th.day.today'),table=wrap.querySelector('table');
+  let f=wrap.querySelector('#todayFrame');
+  if(!th||!table){if(f)f.remove();return;}
+  if(!f){f=document.createElement('div');f.id='todayFrame';wrap.appendChild(f);}
+  const wb=wrap.getBoundingClientRect(),tb=th.getBoundingClientRect(),tab=table.getBoundingClientRect();
+  f.style.left=(tb.left-wb.left+wrap.scrollLeft-4)+'px';
+  f.style.top=(tb.top-wb.top+wrap.scrollTop-4)+'px';
+  f.style.width=(tb.width+8)+'px';
+  f.style.height=(tab.bottom-tb.top+8)+'px';
+}
+window.addEventListener('resize',()=>{clearTimeout(window._tfT);window._tfT=setTimeout(positionTodayFrame,120);});
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
 function renderStars(){
@@ -418,7 +443,7 @@ let bookTarget=null;
 function openBook(id){
   bookTarget=id;
   const box=document.getElementById('bookPick');box.innerHTML='';
-  for(let n=1;n<=5;n++){const b=document.createElement('button');b.className='bookbtn';
+  for(let n=1;n<=3;n++){const b=document.createElement('button');b.className='bookbtn';
     b.innerHTML=n+'<small>本</small>';b.onclick=()=>commitBook(n);box.appendChild(b);}
   document.getElementById('bookMask').classList.add('show');
 }
@@ -480,7 +505,14 @@ function celebrate(){const fx=document.getElementById('fx');for(let i=0;i<24;i++
     {duration:1800+Math.random()*1200,easing:'ease-in'}).onfinish=()=>p.remove();}}
 
 // ---- parent edit ----
-function toggleEdit(){editMode=!editMode;document.body.classList.toggle('editmode',editMode);
+const EDIT_PASS='1122';
+function toggleEdit(){
+  if(!editMode){ // 进入编辑前要输入家长密码
+    const p=prompt('请输入家长密码（4位）：');
+    if(p===null)return;            // 取消
+    if(p!==EDIT_PASS){alert('密码不对哦~');return;}
+  }
+  editMode=!editMode;document.body.classList.toggle('editmode',editMode);
   const b=document.getElementById('editToggle');b.classList.toggle('on',editMode);b.textContent=editMode?'✅ 完成编辑':'✏️ 家长编辑';renderGrid();}
 let editTarget=null,pickType='task';
 function openCell(d,s,id){
@@ -495,7 +527,7 @@ function openCell(d,s,id){
 function renderTypePick(){
   const box=document.getElementById('typepick');box.innerHTML='';
   Object.keys(TYPE).forEach(y=>{
-    const c={meal:'var(--meal)',free:'var(--free)',course:'var(--course)',task:'var(--pink)',sport:'var(--orange)',reading:'var(--blue)'}[y];
+    const c={meal:'var(--meal)',free:'var(--free)',listen:'var(--listen)',course:'var(--course)',task:'var(--pink)',sport:'var(--orange)',reading:'var(--blue)'}[y];
     const b=document.createElement('button');b.textContent=TYPE[y].tag;
     if(y===pickType){b.style.background=c;b.dataset.on='1';b.style.borderColor=c;}else{b.style.color=c;b.style.borderColor=c;}
     b.onclick=()=>{pickType=y;renderTypePick();};box.appendChild(b);
