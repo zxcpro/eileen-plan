@@ -571,20 +571,33 @@ function renderTypePick(){
     b.onclick=()=>{pickType=y;renderTypePick();};box.appendChild(b);
   });
 }
+// 删除某个日程在 prog 里累计的星星记录（被覆盖/删除时调用）
+function purgeActStars(id){
+  const a=acts.find(x=>x.id===id);if(!a)return;const star=TYPE[a.y].star;
+  Object.keys(prog.done).forEach(k=>{if(k.endsWith('|'+id)){const di=k.split('|')[0];
+    const cnt=typeof prog.done[k]==='number'?prog.done[k]:1;
+    if(star&&prog.stars[di])prog.stars[di][star]=Math.max(0,prog.stars[di][star]-cnt);delete prog.done[k];}});
+}
 function saveCell(){
   const t=document.getElementById('eTitle').value.trim();
   const span=parseInt(document.getElementById('eSpan').value)||1;
   if(!t){clearCell();return;}
-  if(editTarget.id){const a=acts.find(x=>x.id===editTarget.id);Object.assign(a,{t,y:pickType,span});}
-  else{acts.push({id:nid(),d:editTarget.d,s:editTarget.s,span,t,y:pickType});}
-  save('sp_acts',acts);pushPlan();closeModal();renderGrid();
+  let selfId,day,s0;
+  if(editTarget.id){const a=acts.find(x=>x.id===editTarget.id);Object.assign(a,{t,y:pickType,span});selfId=a.id;day=a.d;s0=a.s;}
+  else{selfId=nid();acts.push({id:selfId,d:editTarget.d,s:editTarget.s,span,t,y:pickType});day=editTarget.d;s0=editTarget.s;}
+  // 只删除“同一天且时间段重叠”的其它日程，未重叠的一律不动
+  const e0=s0+span-1;
+  const overlapping=acts.filter(x=>x.id!==selfId&&x.d===day&&!(x.s+x.span-1<s0||x.s>e0));
+  if(overlapping.length){
+    overlapping.forEach(x=>purgeActStars(x.id));
+    const ids=new Set(overlapping.map(o=>o.id));
+    acts=acts.filter(x=>!ids.has(x.id));
+    save('sp_prog',prog);pushProg();
+  }
+  save('sp_acts',acts);pushPlan();closeModal();renderGrid();renderStars();
 }
 function clearCell(){if(editTarget.id){const a=acts.find(x=>x.id===editTarget.id);
-  if(a){const star=TYPE[a.y].star;
-    Object.keys(prog.done).forEach(k=>{if(k.endsWith('|'+a.id)){const di=k.split('|')[0];
-      const cnt=typeof prog.done[k]==='number'?prog.done[k]:1;
-      if(star&&prog.stars[di])prog.stars[di][star]=Math.max(0,prog.stars[di][star]-cnt);delete prog.done[k];}});
-    save('sp_prog',prog);}
+  if(a){purgeActStars(a.id);save('sp_prog',prog);}
   acts=acts.filter(x=>x.id!==editTarget.id);save('sp_acts',acts);pushPlan();pushProg();}closeModal();renderGrid();renderStars();}
 function closeModal(){document.getElementById('mask').classList.remove('show');}
 
