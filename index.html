@@ -9,6 +9,7 @@
     --pink:#ff5fa2; --pink-bg:#ffe6f1; --pink-bd:#ffb3d4;
     --orange:#ff9b2f; --orange-bg:#fff0db; --orange-bd:#ffce93;
     --blue:#3aa0ff; --blue-bg:#e2f1ff; --blue-bd:#a9d6ff;
+    --praise:#22b04b; --praise-bg:#e3f7e8; --praise-bd:#a8e6bb;
     --course:#9b6bff; --course-bg:#efe6ff; --course-bd:#cbb3ff;
     --meal:#36c08a; --meal-bg:#e2f8ee; --meal-bd:#a7e7cc;
     --free:#16b5b5; --free-bg:#dcf7f7; --free-bd:#9fe6e6;
@@ -54,8 +55,15 @@
   .chip.pink{border-color:var(--pink-bd);color:var(--pink);background:var(--pink-bg);}
   .chip.orange{border-color:var(--orange-bd);color:var(--orange);background:var(--orange-bg);}
   .chip.blue{border-color:var(--blue-bd);color:var(--blue);background:var(--blue-bg);}
+  .chip.green{border-color:var(--praise-bd);color:var(--praise);background:var(--praise-bg);position:relative;}
+  body.editmode .chip.green{cursor:pointer;box-shadow:0 0 0 3px rgba(34,176,75,.2);}
+  .praiseminus{position:absolute;top:-9px;right:-9px;width:22px;height:22px;border-radius:50%;
+    background:#fff;border:2px solid var(--praise-bd);color:var(--praise);font-weight:900;font-size:15px;
+    line-height:1;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.14);}
+  body.editmode .praiseminus{display:inline-flex;}
   .starnote{flex:1 1 160px;font-size:13px;font-weight:800;color:#cf6f12;background:#fff6e6;
     border:2px dashed #ffd79a;border-radius:14px;padding:8px 12px;line-height:1.35;}
+  .starnote .bigtime{font-size:21px;font-weight:900;color:#e3506e;letter-spacing:.5px;}
 
   /* pomodoro compact */
   .pomo{flex:0 0 auto;display:flex;align-items:center;gap:14px;}
@@ -93,9 +101,17 @@
     vertical-align:top;padding-top:3px;position:sticky;left:0;z-index:5;background:var(--bg);}
   td.col{background:#fafafa;border:2px dashed #eee;border-radius:12px;height:46px;}
   td.todaycol{background:#fff0f6;}
-  /* 工作日上午「上学中」合并块（不可编辑） */
-  td.schoolblock{border-radius:12px;}
-  .cell.school{background:#f1eef7;border-color:#ddd5ea;border-style:dashed;color:#a99fc0;align-items:center;text-align:center;}
+  /* 工作日上午「上学中」合并块（不可编辑），整块填满上午高度、文字垂直居中 */
+  td.schoolblock{background:#f1eef7;border:2px dashed #ddd5ea;border-radius:12px;
+    color:#a99fc0;font-weight:800;font-size:14px;text-align:center;vertical-align:middle;writing-mode:horizontal-tb;}
+  /* 工作日上午折叠条：固定「上学中」，不可点击 */
+  td.schoolstrip{background:#f1eef7;border:2px dashed #ddd5ea;border-radius:12px;color:#8a7fa8;
+    font-weight:800;font-size:13px;text-align:center;height:32px;}
+  td.schoolspacer{background:transparent;border:none;}
+  /* 周六日上午折叠条：蓝色、可点击展开/收起 */
+  td.morningstrip{background:#e9f3ff;border:2px dashed #b9d6f5;border-radius:12px;color:#2f7fd0;
+    font-weight:800;font-size:13px;text-align:center;cursor:pointer;height:32px;padding:0 6px;}
+  td.morningstrip:hover{background:#daebff;color:#1f6fc0;}
   /* 整日高亮：一个边框把当天一整列框起来，而不是逐个任务描边 */
   #todayFrame{position:absolute;pointer-events:none;z-index:4;border:3px solid #ff5fa2;border-radius:16px;
     box-shadow:0 0 0 4px rgba(255,95,162,.16),0 6px 18px rgba(255,95,162,.22);}
@@ -156,6 +172,7 @@
   table.detail td.cp{color:var(--pink);font-weight:800;}
   table.detail td.co{color:var(--orange);font-weight:800;}
   table.detail td.cb{color:var(--blue);font-weight:800;}
+  table.detail td.cg{color:var(--praise);font-weight:800;}
   table.detail td.sum{font-weight:900;}
   table.detail tr.totrow td{background:#fdf1f7;font-weight:900;border-top:2px solid #ffd0e6;}
   .bookpick{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:16px 0 6px;}
@@ -192,8 +209,9 @@
       <div class="chip pink">⭐<span id="cPink">0</span><small>任务星</small></div>
       <div class="chip orange">⭐<span id="cOrange">0</span><small>运动星</small></div>
       <div class="chip blue">⭐<span id="cBlue">0</span><small>阅读星</small></div>
+      <div class="chip green" id="praiseChip" onclick="awardPraise(1)" title="家长编辑模式下点一下 +1 颗你真棒">⭐<span id="cGreen">0</span><small>你真棒</small><button class="praiseminus" onclick="event.stopPropagation();awardPraise(-1)">−</button></div>
     </div>
-    <div class="starnote">🕗 每天 <b>20:10</b> 和妈妈视频盘点星星 ⭐</div>
+    <div class="starnote">🕗 每天 <span class="bigtime">20:10</span> 和妈妈视频盘点星星 ⭐</div>
   </div>
   <div class="panel pomo">
     <div class="ring-wrap">
@@ -261,7 +279,7 @@
 <div class="mask" id="bookMask">
   <div class="modal" style="max-width:360px;text-align:center">
     <h2 style="justify-content:center">📚 今天读了几本书？</h2>
-    <div style="font-size:13px;color:var(--soft);margin-bottom:6px">读几本就得几颗 🔵 阅读星</div>
+    <div style="font-size:13px;color:var(--soft);margin-bottom:6px">读几本就拍照几本给妈妈，得到几个 🔵 阅读星</div>
     <div class="bookpick" id="bookPick"></div>
     <div class="modal-foot" style="justify-content:center">
       <button class="ghost" onclick="closeBook()">取消</button>
@@ -316,7 +334,7 @@ const TYPE={
   sport:{tag:'运动',star:'orange'},
   reading:{tag:'阅读',star:'blue'},
 };
-const STAR_COLOR={pink:'#ff5fa2',orange:'#ff9b2f',blue:'#3aa0ff'};
+const STAR_COLOR={pink:'#ff5fa2',orange:'#ff9b2f',blue:'#3aa0ff',green:'#22b04b'};
 let _i=0;const nid=()=>'a'+Date.now().toString(36)+(_i++);
 
 // slot index helper for defaults
@@ -363,7 +381,7 @@ let notes=load('sp_notes',null)||DEFAULT_NOTES;
 // prog: stars keyed by ISO date {pink,orange,blue}; done keyed by "ISOdate|actId"
 let prog=load('sp_prog',null);
 if(!prog||typeof prog!=='object'||!prog.done||!prog.stars||prog.weekId!==undefined){prog={done:{},stars:{}};}
-function dateStars(iso){prog.stars[iso]=prog.stars[iso]||{pink:0,orange:0,blue:0};return prog.stars[iso];}
+function dateStars(iso){const o=prog.stars[iso]=prog.stars[iso]||{pink:0,orange:0,blue:0,green:0};if(o.green===undefined)o.green=0;return o;}
 // keep only a rolling window: last 14 days + the 7 columns of the current week
 function prune(){
   const keep=new Set();const t=new Date();t.setHours(0,0,0,0);
@@ -374,6 +392,12 @@ function prune(){
 }
 
 let editMode=false;
+let morningOpen=false; // 上午(8:00~13:00)手动展开开关
+function todayMorningHasItems(){const ti=todayIdx();return acts.some(a=>a.d===ti&&a.s<MORNING_END);}
+function anyWeekendMorningItems(){return acts.some(a=>(a.d===5||a.d===6)&&a.s<MORNING_END);}
+// 强制展开：编辑模式，或「今天是周六日且当天上午有事项」
+function morningForced(){return editMode||(todayIdx()>=5&&todayMorningHasItems());}
+function morningExpanded(){return morningForced()||morningOpen;}
 
 // ---- render ----
 function buildOcc(){
@@ -392,13 +416,26 @@ function renderGrid(){
   DAYS.forEach((nm,i)=>{const dt=new Date(mon);dt.setDate(mon.getDate()+i);
     h+=`<th class="day${i===ti?' today':''}">${nm}<small>${dt.getMonth()+1}/${dt.getDate()}${i===ti?' 今天':''}</small></th>`;});
   h+='</tr></thead><tbody>';
-  for(let r=0;r<NSLOT;r++){
+  const mOpen=morningExpanded();
+  // 上午(8:00~13:30)：工作日固定「上学中」不可点；只有周六日那两列可点击展开/收起
+  if(!mOpen){
+    const tip=anyWeekendMorningItems()?'周末上午有安排，点击展开 ▾':'点击展开 ▾';
+    h+=`<tr><td class="time">上午</td>`
+      +`<td class="schoolstrip" colspan="5">🏫 上学中 8:00–13:30</td>`
+      +`<td class="morningstrip" colspan="2" data-morning="open">${tip}</td></tr>`;
+  }else if(!morningForced()){
+    // 手动展开后，仅周六日那两列给「收起」入口（工作日不可点）
+    h+=`<tr><td class="time"></td>`
+      +`<td class="schoolspacer" colspan="5"></td>`
+      +`<td class="morningstrip" colspan="2" data-morning="close">▴ 收起上午</td></tr>`;
+  }
+  for(let r=(mOpen?0:MORNING_END);r<NSLOT;r++){
     h+=`<tr><td class="time">${SLOTS[r]}</td>`;
     for(let d=0;d<7;d++){
       const todayCls=d===ti?' todaycol':'';
       // 工作日(周一~周五)上午 8:00~13:00 合并成一块「上学中」，周末则是正常可编辑格子
-      if(d<=4 && r<MORNING_END){
-        if(r===0)h+=`<td class="schoolblock" rowspan="${MORNING_END}"><div class="cell school"><div class="ttl">🏫 上学中</div></div></td>`;
+      if(mOpen && d<=4 && r<MORNING_END){
+        if(r===0)h+=`<td class="schoolblock" rowspan="${MORNING_END}">🏫 上学中</td>`;
         continue;
       }
       const c=occ[d][r];
@@ -430,6 +467,10 @@ function renderGrid(){
       if(ck){toggleDone(ck.getAttribute('data-check'),ck);}
     };
   });
+  // 上午折叠条：点击展开/收起
+  document.querySelectorAll('#grid [data-morning]').forEach(el=>{
+    el.onclick=()=>{morningOpen=(el.dataset.morning==='open');renderGrid();};
+  });
   positionTodayFrame();
   requestAnimationFrame(positionTodayFrame);
 }
@@ -454,6 +495,15 @@ function renderStars(){
   document.getElementById('cPink').textContent=s.pink;
   document.getElementById('cOrange').textContent=s.orange;
   document.getElementById('cBlue').textContent=s.blue;
+  document.getElementById('cGreen').textContent=s.green||0;
+}
+// 「你真棒」绿星：只能家长在编辑模式下点击发放（+1）或撤销（-1），按「今天」记录
+function awardPraise(n){
+  if(!editMode)return;
+  const s=dateStars(todayISO());
+  s.green=Math.max(0,(s.green||0)+n);
+  if(n>0){burst(document.getElementById('praiseChip'),'green');ding();}
+  save('sp_prog',prog);pushProg();renderStars();
 }
 function renderTop(){
   const d=new Date();
@@ -620,18 +670,19 @@ function closeModal(){document.getElementById('mask').classList.remove('show');}
 // ---- recent-7-days detail ----
 function openDetail(){
   const t=new Date();t.setHours(0,0,0,0);
-  let tp=0,to=0,tb=0;
+  let tp=0,to=0,tb=0,tg=0;
   let h=`<div style="font-size:12px;color:var(--soft);margin-bottom:10px">最近 7 天 · 每天获得的星星数量（旧记录自动滚动清除）</div>`;
-  h+='<table class="detail"><thead><tr><th>日期</th><th>🩷任务星</th><th>🟠运动星</th><th>🔵阅读星</th><th>合计</th></tr></thead><tbody>';
+  h+='<table class="detail"><thead><tr><th>日期</th><th>🩷任务星</th><th>🟠运动星</th><th>🔵阅读星</th><th>💚你真棒</th><th>合计</th></tr></thead><tbody>';
   for(let i=6;i>=0;i--){
     const dt=new Date(t);dt.setDate(t.getDate()-i);const iso=isoOf(dt);const isToday=i===0;
-    const s=prog.stars[iso]||{pink:0,orange:0,blue:0};
-    const sum=s.pink+s.orange+s.blue;tp+=s.pink;to+=s.orange;tb+=s.blue;
+    const s=prog.stars[iso]||{pink:0,orange:0,blue:0,green:0};
+    const g=s.green||0;
+    const sum=s.pink+s.orange+s.blue+g;tp+=s.pink;to+=s.orange;tb+=s.blue;tg+=g;
     const lbl=`${dt.getMonth()+1}/${dt.getDate()} ${DAYS[(dt.getDay()+6)%7]}`;
     h+=`<tr class="${isToday?'istoday':''}"><td class="dname">${lbl}${isToday?' ·今天':''}</td>
-      <td class="cp">${s.pink}</td><td class="co">${s.orange}</td><td class="cb">${s.blue}</td><td class="sum">${sum}</td></tr>`;
+      <td class="cp">${s.pink}</td><td class="co">${s.orange}</td><td class="cb">${s.blue}</td><td class="cg">${g}</td><td class="sum">${sum}</td></tr>`;
   }
-  h+=`<tr class="totrow"><td>7天合计</td><td class="cp">${tp}</td><td class="co">${to}</td><td class="cb">${tb}</td><td class="sum">${tp+to+tb}</td></tr>`;
+  h+=`<tr class="totrow"><td>7天合计</td><td class="cp">${tp}</td><td class="co">${to}</td><td class="cb">${tb}</td><td class="cg">${tg}</td><td class="sum">${tp+to+tb+tg}</td></tr>`;
   h+='</tbody></table>';
   document.getElementById('detailBody').innerHTML=h;
   document.getElementById('detailMask').classList.add('show');
