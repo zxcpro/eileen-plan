@@ -79,7 +79,8 @@
 
   /* grid */
   .gridwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px;position:relative;}
-  table{border-collapse:separate;border-spacing:5px;width:100%;min-width:880px;}
+  table{border-collapse:separate;border-spacing:5px;width:100%;min-width:880px;table-layout:fixed;}
+  .cell .ttl{word-break:break-word;}
   th,td{vertical-align:top;}
   th.day{background:#fff;border:2px solid #ffe0ef;border-radius:14px;padding:8px 4px;text-align:center;font-size:14px;color:var(--soft);}
   th.day.today{background:linear-gradient(135deg,#ff7fb6,#ff5fa2);color:#fff;border-color:#ff5fa2;}
@@ -158,6 +159,11 @@
     flex-direction:column;align-items:center;justify-content:center;line-height:1;box-shadow:0 3px 0 var(--blue-bd);}
   .bookbtn small{font-size:11px;font-weight:700;margin-top:2px;}
   .bookbtn:active{transform:translateY(3px);box-shadow:none;}
+  .passbox{width:170px;text-align:center;letter-spacing:14px;font-size:30px;font-weight:800;
+    padding:12px 10px 12px 24px;border-radius:16px;border:2.5px solid var(--pink-bd);
+    background:var(--pink-bg);color:var(--pink);font-family:inherit;outline:none;}
+  .passbox:focus{border-color:var(--pink);box-shadow:0 0 0 4px rgba(255,95,162,.15);}
+  .passerr{color:#e3556e;font-size:13px;font-weight:700;height:20px;margin:10px 0 2px;}
 </style>
 </head>
 <body>
@@ -224,6 +230,23 @@
     <div id="detailBody"></div>
     <div class="modal-foot" style="justify-content:flex-end">
       <button class="save" onclick="document.getElementById('detailMask').classList.remove('show')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- parent password -->
+<div class="mask" id="passMask">
+  <div class="modal" style="max-width:330px;text-align:center">
+    <div style="font-size:40px;line-height:1;margin-bottom:6px">🔒</div>
+    <h2 style="justify-content:center">家长验证</h2>
+    <div style="font-size:13px;color:var(--soft);margin:-4px 0 14px">请输入 4 位家长密码</div>
+    <input id="passInput" class="passbox" type="password" inputmode="numeric" maxlength="4"
+      placeholder="••••" autocomplete="off"
+      oninput="passInputChange(this.value)" onkeydown="if(event.key==='Enter')submitPass()">
+    <div id="passErr" class="passerr"></div>
+    <div class="modal-foot" style="justify-content:center;gap:10px">
+      <button class="ghost" onclick="closePass()">取消</button>
+      <button class="save" onclick="submitPass()">进入编辑</button>
     </div>
   </div>
 </div>
@@ -507,13 +530,28 @@ function celebrate(){const fx=document.getElementById('fx');for(let i=0;i<24;i++
 // ---- parent edit ----
 const EDIT_PASS='1122';
 function toggleEdit(){
-  if(!editMode){ // 进入编辑前要输入家长密码
-    const p=prompt('请输入家长密码（4位）：');
-    if(p===null)return;            // 取消
-    if(p!==EDIT_PASS){alert('密码不对哦~');return;}
-  }
-  editMode=!editMode;document.body.classList.toggle('editmode',editMode);
-  const b=document.getElementById('editToggle');b.classList.toggle('on',editMode);b.textContent=editMode?'✅ 完成编辑':'✏️ 家长编辑';renderGrid();}
+  if(!editMode){openPass();return;} // 进入编辑前要输入家长密码
+  setEdit(false);
+}
+function setEdit(on){
+  editMode=on;document.body.classList.toggle('editmode',editMode);
+  const b=document.getElementById('editToggle');b.classList.toggle('on',editMode);
+  b.textContent=editMode?'✅ 完成编辑':'✏️ 家长编辑';renderGrid();
+}
+function openPass(){
+  const m=document.getElementById('passMask');
+  document.getElementById('passInput').value='';
+  document.getElementById('passErr').textContent='';
+  m.classList.add('show');
+  setTimeout(()=>document.getElementById('passInput').focus(),60);
+}
+function closePass(){document.getElementById('passMask').classList.remove('show');}
+function passInputChange(v){if(v.length>=4)submitPass();}
+function submitPass(){
+  const i=document.getElementById('passInput');
+  if(i.value===EDIT_PASS){closePass();setEdit(true);}
+  else{document.getElementById('passErr').textContent='密码不对哦，再试一次 ~';i.value='';i.focus();}
+}
 let editTarget=null,pickType='task';
 function openCell(d,s,id){
   editTarget={d,s,id};
