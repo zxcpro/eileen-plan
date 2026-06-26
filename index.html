@@ -11,6 +11,7 @@
     --blue:#3aa0ff; --blue-bg:#e2f1ff; --blue-bd:#a9d6ff;
     --course:#9b6bff; --course-bg:#efe6ff; --course-bd:#cbb3ff;
     --meal:#36c08a; --meal-bg:#e2f8ee; --meal-bd:#a7e7cc;
+    --free:#16b5b5; --free-bg:#dcf7f7; --free-bd:#9fe6e6;
     --ink:#3b3550; --soft:#8a82a3;
     --bg:#fff7fb;
   }
@@ -89,6 +90,7 @@
   .cell .ttl{font-weight:800;font-size:13px;line-height:1.2;}
   .cell .tg{font-size:10px;font-weight:800;opacity:.85;}
   .cell.meal{background:var(--meal-bg);border-color:var(--meal-bd);color:#1f8c63;}
+  .cell.free{background:var(--free-bg);border-color:var(--free-bd);color:#0e8a8a;}
   .cell.course{background:var(--course-bg);border-color:var(--course-bd);color:#6b3fd0;}
   .cell.task{background:var(--pink-bg);border-color:var(--pink-bd);color:#c93b78;}
   .cell.sport{background:var(--orange-bg);border-color:var(--orange-bd);color:#cf6f12;}
@@ -142,6 +144,12 @@
   table.detail td.cb{color:var(--blue);font-weight:800;}
   table.detail td.sum{font-weight:900;}
   table.detail tr.totrow td{background:#fdf1f7;font-weight:900;border-top:2px solid #ffd0e6;}
+  .bookpick{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:16px 0 6px;}
+  .bookbtn{width:58px;height:58px;border-radius:16px;border:2px solid var(--blue-bd);
+    background:var(--blue-bg);color:var(--blue);font-weight:900;font-size:20px;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;line-height:1;box-shadow:0 3px 0 var(--blue-bd);}
+  .bookbtn small{font-size:11px;font-weight:700;margin-top:2px;}
+  .bookbtn:active{transform:translateY(3px);box-shadow:none;}
 </style>
 </head>
 <body>
@@ -212,6 +220,18 @@
   </div>
 </div>
 
+<!-- reading book-count picker -->
+<div class="mask" id="bookMask">
+  <div class="modal" style="max-width:360px;text-align:center">
+    <h2 style="justify-content:center">📚 今天读了几本书？</h2>
+    <div style="font-size:13px;color:var(--soft);margin-bottom:6px">读几本就得几颗 🔵 阅读星</div>
+    <div class="bookpick" id="bookPick"></div>
+    <div class="modal-foot" style="justify-content:center">
+      <button class="ghost" onclick="closeBook()">取消</button>
+    </div>
+  </div>
+</div>
+
 <!-- cell editor -->
 <div class="mask" id="mask">
   <div class="modal">
@@ -249,6 +269,7 @@ const SLOTS=['13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17
 const NSLOT=SLOTS.length; // 14 rows
 const TYPE={
   meal:{tag:'日程',star:null},
+  free:{tag:'自由',star:null},
   course:{tag:'课程',star:null},
   task:{tag:'任务',star:'pink'},
   sport:{tag:'运动',star:'orange'},
@@ -381,9 +402,34 @@ function toggleDone(id,el){
   const a=acts.find(x=>x.id===id);if(!a)return;const star=TYPE[a.y].star;if(!star)return;
   // 完成状态 + 星星都归属「完成的那一天」(今天)。没完成的任务在任何一天都显示未完成。
   const di=todayISO(),key=di+'|'+id,s=dateStars(di);
-  if(prog.done[key]){delete prog.done[key];s[star]=Math.max(0,s[star]-1);}
-  else{prog.done[key]=true;s[star]++;burst(el,star);ding();}
-  save('sp_prog',prog);pushProg();renderGrid();renderStars();
+  if(prog.done[key]){
+    // 取消完成：扣回当时记录的星星数（阅读可能是 1~5 颗）
+    const cnt=typeof prog.done[key]==='number'?prog.done[key]:1;
+    delete prog.done[key];s[star]=Math.max(0,s[star]-cnt);
+    save('sp_prog',prog);pushProg();renderGrid();renderStars();
+  }else{
+    if(a.y==='reading'){openBook(id);return;} // 阅读：先选「几本」
+    prog.done[key]=1;s[star]++;burst(el,star);ding();
+    save('sp_prog',prog);pushProg();renderGrid();renderStars();
+  }
+}
+// 阅读专用：弹出「几本」选择，选 1~5 本即给 1~5 颗星
+let bookTarget=null;
+function openBook(id){
+  bookTarget=id;
+  const box=document.getElementById('bookPick');box.innerHTML='';
+  for(let n=1;n<=5;n++){const b=document.createElement('button');b.className='bookbtn';
+    b.innerHTML=n+'<small>本</small>';b.onclick=()=>commitBook(n);box.appendChild(b);}
+  document.getElementById('bookMask').classList.add('show');
+}
+function closeBook(){document.getElementById('bookMask').classList.remove('show');bookTarget=null;}
+function commitBook(n){
+  if(bookTarget==null)return;const id=bookTarget;
+  const di=todayISO(),key=di+'|'+id,s=dateStars(di);
+  prog.done[key]=n;s.blue+=n;ding();
+  save('sp_prog',prog);pushProg();closeBook();renderGrid();renderStars();
+  const ck=document.querySelector('[data-check="'+id+'"]');
+  if(ck)for(let i=0;i<n;i++)setTimeout(()=>burst(ck,'blue'),i*160);
 }
 
 // ---- star burst ----
@@ -449,7 +495,7 @@ function openCell(d,s,id){
 function renderTypePick(){
   const box=document.getElementById('typepick');box.innerHTML='';
   Object.keys(TYPE).forEach(y=>{
-    const c={meal:'var(--meal)',course:'var(--course)',task:'var(--pink)',sport:'var(--orange)',reading:'var(--blue)'}[y];
+    const c={meal:'var(--meal)',free:'var(--free)',course:'var(--course)',task:'var(--pink)',sport:'var(--orange)',reading:'var(--blue)'}[y];
     const b=document.createElement('button');b.textContent=TYPE[y].tag;
     if(y===pickType){b.style.background=c;b.dataset.on='1';b.style.borderColor=c;}else{b.style.color=c;b.style.borderColor=c;}
     b.onclick=()=>{pickType=y;renderTypePick();};box.appendChild(b);
@@ -466,7 +512,8 @@ function saveCell(){
 function clearCell(){if(editTarget.id){const a=acts.find(x=>x.id===editTarget.id);
   if(a){const star=TYPE[a.y].star;
     Object.keys(prog.done).forEach(k=>{if(k.endsWith('|'+a.id)){const di=k.split('|')[0];
-      if(star&&prog.stars[di])prog.stars[di][star]=Math.max(0,prog.stars[di][star]-1);delete prog.done[k];}});
+      const cnt=typeof prog.done[k]==='number'?prog.done[k]:1;
+      if(star&&prog.stars[di])prog.stars[di][star]=Math.max(0,prog.stars[di][star]-cnt);delete prog.done[k];}});
     save('sp_prog',prog);}
   acts=acts.filter(x=>x.id!==editTarget.id);save('sp_acts',acts);pushPlan();pushProg();}closeModal();renderGrid();renderStars();}
 function closeModal(){document.getElementById('mask').classList.remove('show');}
