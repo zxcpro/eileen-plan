@@ -55,12 +55,17 @@
   .chip.pink{border-color:var(--pink-bd);color:var(--pink);background:var(--pink-bg);}
   .chip.orange{border-color:var(--orange-bd);color:var(--orange);background:var(--orange-bg);}
   .chip.blue{border-color:var(--blue-bd);color:var(--blue);background:var(--blue-bg);}
-  .chip.green{border-color:var(--praise-bd);color:var(--praise);background:var(--praise-bg);position:relative;}
-  body.editmode .chip.green{cursor:pointer;box-shadow:0 0 0 3px rgba(34,176,75,.2);}
-  .praiseminus{position:absolute;top:-9px;right:-9px;width:22px;height:22px;border-radius:50%;
-    background:#fff;border:2px solid var(--praise-bd);color:var(--praise);font-weight:900;font-size:15px;
+  .chip.green{border-color:var(--praise-bd);color:var(--praise);background:var(--praise-bg);}
+  .chip.editable{position:relative;}
+  body.editmode .chip.editable{cursor:pointer;}
+  body.editmode .chip.pink{box-shadow:0 0 0 3px rgba(255,95,162,.2);}
+  body.editmode .chip.orange{box-shadow:0 0 0 3px rgba(255,155,47,.2);}
+  body.editmode .chip.blue{box-shadow:0 0 0 3px rgba(58,160,255,.2);}
+  body.editmode .chip.green{box-shadow:0 0 0 3px rgba(34,176,75,.2);}
+  .starminus{position:absolute;top:-9px;right:-9px;width:22px;height:22px;border-radius:50%;
+    background:#fff;border:2px solid currentColor;color:inherit;font-weight:900;font-size:15px;
     line-height:1;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.14);}
-  body.editmode .praiseminus{display:inline-flex;}
+  body.editmode .starminus{display:inline-flex;}
   .starnote{flex:1 1 160px;font-size:13px;font-weight:800;color:#cf6f12;background:#fff6e6;
     border:2px dashed #ffd79a;border-radius:14px;padding:8px 12px;line-height:1.35;}
   .starnote .bigtime{font-size:21px;font-weight:900;color:#e3506e;letter-spacing:.5px;}
@@ -206,10 +211,10 @@
   <div class="panel stars">
     <div class="lead">今天<br>得到</div>
     <div class="chips">
-      <div class="chip pink">⭐<span id="cPink">0</span><small>任务星</small></div>
-      <div class="chip orange">⭐<span id="cOrange">0</span><small>运动星</small></div>
-      <div class="chip blue">⭐<span id="cBlue">0</span><small>阅读星</small></div>
-      <div class="chip green" id="praiseChip" onclick="awardPraise(1)" title="家长编辑模式下点一下 +1 颗你真棒">⭐<span id="cGreen">0</span><small>你真棒</small><button class="praiseminus" onclick="event.stopPropagation();awardPraise(-1)">−</button></div>
+      <div class="chip pink editable" id="chip_pink" onclick="awardStar('pink',1)" title="家长编辑模式下点一下 +1 颗任务星">⭐<span id="cPink">0</span><small>任务星</small><button class="starminus" onclick="event.stopPropagation();awardStar('pink',-1)">−</button></div>
+      <div class="chip orange editable" id="chip_orange" onclick="awardStar('orange',1)" title="家长编辑模式下点一下 +1 颗运动星">⭐<span id="cOrange">0</span><small>运动星</small><button class="starminus" onclick="event.stopPropagation();awardStar('orange',-1)">−</button></div>
+      <div class="chip blue editable" id="chip_blue" onclick="awardStar('blue',1)" title="家长编辑模式下点一下 +1 颗阅读星">⭐<span id="cBlue">0</span><small>阅读星</small><button class="starminus" onclick="event.stopPropagation();awardStar('blue',-1)">−</button></div>
+      <div class="chip green editable" id="chip_green" onclick="awardStar('green',1)" title="家长编辑模式下点一下 +1 颗你真棒">⭐<span id="cGreen">0</span><small>你真棒</small><button class="starminus" onclick="event.stopPropagation();awardStar('green',-1)">−</button></div>
     </div>
     <div class="starnote">🕗 每天 <span class="bigtime">20:10</span> 和妈妈视频盘点星星 ⭐</div>
   </div>
@@ -497,12 +502,12 @@ function renderStars(){
   document.getElementById('cBlue').textContent=s.blue;
   document.getElementById('cGreen').textContent=s.green||0;
 }
-// 「你真棒」绿星：只能家长在编辑模式下点击发放（+1）或撤销（-1），按「今天」记录
-function awardPraise(n){
+// 四种星星均可由家长在编辑模式下手动增减（+1 / -1），在原有数字基础上叠加，按「今天」记录
+function awardStar(key,n){
   if(!editMode)return;
   const s=dateStars(todayISO());
-  s.green=Math.max(0,(s.green||0)+n);
-  if(n>0){burst(document.getElementById('praiseChip'),'green');ding();}
+  s[key]=Math.max(0,(s[key]||0)+n);
+  if(n>0){burst(document.getElementById('chip_'+key),key);ding();}
   save('sp_prog',prog);pushProg();renderStars();
 }
 function renderTop(){
