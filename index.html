@@ -387,6 +387,32 @@ let notes=load('sp_notes',null)||DEFAULT_NOTES;
 let prog=load('sp_prog',null);
 if(!prog||typeof prog!=='object'||!prog.done||!prog.stars||prog.weekId!==undefined){prog={done:{},stars:{}};}
 function dateStars(iso){const o=prog.stars[iso]=prog.stars[iso]||{pink:0,orange:0,blue:0,green:0};if(o.green===undefined)o.green=0;return o;}
+// 完成/星星按「任务星期几对应的那一天」记录，跨天/整周都能看到打勾。
+// PROG_V=1：把历史上按「点击当天」记录的旧数据迁到按「星期几日期」记录（幂等，可反复安全执行）。
+const PROG_V=1;
+function weekdayISO(iso,dayIdx){const p=iso.split('-').map(Number);const d=new Date(p[0],p[1]-1,p[2]);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7)+dayIdx);return isoOf(d);}
+function migrateProg(p){
+  if(!p||!p.done)return false;
+  const byId={};acts.forEach(a=>{byId[a.id]=a;});
+  const nd={};let changed=false;
+  Object.keys(p.done).forEach(k=>{
+    const i=k.indexOf('|'),oldDate=k.slice(0,i),id=k.slice(i+1),val=p.done[k];
+    const a=byId[id];
+    if(!a){nd[k]=val;return;} // 找不到对应日程（已删除）→ 原样保留，交给 prune 清理
+    const cnt=typeof val==='number'?val:1;
+    const nDate=weekdayISO(oldDate,a.d);
+    nd[nDate+'|'+id]=val;
+    if(nDate!==oldDate){
+      changed=true;const star=TYPE[a.y].star;
+      if(star){p.stars=p.stars||{};
+        if(p.stars[oldDate])p.stars[oldDate][star]=Math.max(0,(p.stars[oldDate][star]||0)-cnt);
+        const s=p.stars[nDate]=p.stars[nDate]||{pink:0,orange:0,blue:0,green:0};
+        s[star]=(s[star]||0)+cnt;}
+    }
+  });
+  p.done=nd;return changed;
+}
+if(load('sp_progV',0)<PROG_V){migrateProg(prog);save('sp_prog',prog);save('sp_progV',PROG_V);}
 // keep only a rolling window: last 14 days + the 7 columns of the current week
 function prune(){
   const keep=new Set();const t=new Date();t.setHours(0,0,0,0);
@@ -446,7 +472,7 @@ function renderGrid(){
       const c=occ[d][r];
       if(c==='cov')continue;
       if(c){
-        const star=TYPE[c.y].star;const isDone=star&&prog.done[todayISO()+'|'+c.id];
+        const star=TYPE[c.y].star;const isDone=star&&prog.done[colISO(d)+'|'+c.id];
         h+=`<td class="col${todayCls}" rowspan="${c.span}" data-d="${d}" data-s="${r}" data-id="${c.id}">
           <div class="cell ${c.y}${isDone?' done':''}">
             <div class="ttl">${esc(c.t)}</div>
@@ -519,8 +545,8 @@ function renderAll(){renderTop();renderGrid();renderStars();}
 // ---- completion ----
 function toggleDone(id,el){
   const a=acts.find(x=>x.id===id);if(!a)return;const star=TYPE[a.y].star;if(!star)return;
-  // 完成状态 + 星星都归属「完成的那一天」(今天)。没完成的任务在任何一天都显示未完成。
-  const di=todayISO(),key=di+'|'+id,s=dateStars(di);
+  // 完成状态 + 星星都归属「任务所在星期几对应的那一天」，跨天/整周都能看到打勾。
+  const di=colISO(a.d),key=di+'|'+id,s=dateStars(di);
   if(prog.done[key]){
     // 取消完成：扣回当时记录的星星数（阅读可能是 1~5 颗）
     const cnt=typeof prog.done[key]==='number'?prog.done[key]:1;
@@ -544,7 +570,8 @@ function openBook(id){
 function closeBook(){document.getElementById('bookMask').classList.remove('show');bookTarget=null;}
 function commitBook(n){
   if(bookTarget==null)return;const id=bookTarget;
-  const di=todayISO(),key=di+'|'+id,s=dateStars(di);
+  const a=acts.find(x=>x.id===id);if(!a){closeBook();return;}
+  const di=colISO(a.d),key=di+'|'+id,s=dateStars(di);
   prog.done[key]=n;s.blue+=n;ding();
   save('sp_prog',prog);pushProg();closeBook();renderGrid();renderStars();
   const ck=document.querySelector('[data-check="'+id+'"]');
@@ -726,16 +753,17 @@ function initSync(){
       const v=snap.val();
       if(!v){pushPlan();pushProg();return;} // 房间为空 → 用本机数据做种子
       applyingRemote=true;
-      let needMigratePush=false;
+      let needMigratePush=false,needProgPush=false;
       if(v.plan&&v.plan.acts){
         acts=v.plan.acts;
         if((v.plan.schemaV||1)<SCHEMA_V){migrateActs(acts,v.plan.schemaV);needMigratePush=true;} // 一次性把旧坐标(13:30起)迁到新坐标(8:00起)
         acts.forEach(a=>{if(!a.id)a.id=nid();});notes=v.plan.notes||{};
         save('sp_acts',acts);save('sp_notes',notes);save('sp_schemaV',SCHEMA_V);
       }
-      if(v.prog){prog={done:v.prog.done||{},stars:v.prog.stars||{}};prune();save('sp_prog',prog);}
+      if(v.prog){prog={done:v.prog.done||{},stars:v.prog.stars||{}};if(migrateProg(prog))needProgPush=true;prune();save('sp_prog',prog);save('sp_progV',PROG_V);}
       applyingRemote=false;renderAll();
       if(needMigratePush)pushPlan(); // 把迁移后的数据写回，其它设备就拿到新坐标
+      if(needProgPush)pushProg(); // 把修正后的完成/星星数据写回，其它设备统一
     },err=>{syncStatus('error');});
   }catch(e){console.warn('sync init fail',e);syncStatus('error');}
 }
