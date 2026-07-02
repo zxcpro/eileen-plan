@@ -472,7 +472,7 @@ function renderGrid(){
       const c=occ[d][r];
       if(c==='cov')continue;
       if(c){
-        const star=TYPE[c.y].star;const isDone=star&&prog.done[colISO(d)+'|'+c.id];
+        const star=TYPE[c.y].star;const isDone=star&&prog.done[todayISO()+'|'+c.id];
         h+=`<td class="col${todayCls}" rowspan="${c.span}" data-d="${d}" data-s="${r}" data-id="${c.id}">
           <div class="cell ${c.y}${isDone?' done':''}">
             <div class="ttl">${esc(c.t)}</div>
@@ -545,8 +545,9 @@ function renderAll(){renderTop();renderGrid();renderStars();}
 // ---- completion ----
 function toggleDone(id,el){
   const a=acts.find(x=>x.id===id);if(!a)return;const star=TYPE[a.y].star;if(!star)return;
-  // 完成状态 + 星星都归属「任务所在星期几对应的那一天」，跨天/整周都能看到打勾。
-  const di=colISO(a.d),key=di+'|'+id,s=dateStars(di);
+  // 完成状态 + 星星都归属「完成的那一天(今天)」：无论完成哪天的任务，都记在今天，
+  // 与「今天得到」和「最近7天」保持一致；次日任务重新变为未完成，可再次打勾得星。
+  const di=todayISO(),key=di+'|'+id,s=dateStars(di);
   if(prog.done[key]){
     // 取消完成：扣回当时记录的星星数（阅读可能是 1~5 颗）
     const cnt=typeof prog.done[key]==='number'?prog.done[key]:1;
@@ -571,7 +572,7 @@ function closeBook(){document.getElementById('bookMask').classList.remove('show'
 function commitBook(n){
   if(bookTarget==null)return;const id=bookTarget;
   const a=acts.find(x=>x.id===id);if(!a){closeBook();return;}
-  const di=colISO(a.d),key=di+'|'+id,s=dateStars(di);
+  const di=todayISO(),key=di+'|'+id,s=dateStars(di);
   prog.done[key]=n;s.blue+=n;ding();
   save('sp_prog',prog);pushProg();closeBook();renderGrid();renderStars();
   const ck=document.querySelector('[data-check="'+id+'"]');
